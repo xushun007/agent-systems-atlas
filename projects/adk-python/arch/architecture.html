@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADK Architecture — Google Agent Development Kit</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2d3142;
+    --text: #e2e4eb;
+    --text2: #9ca3b4;
+    --accent: #6c8cff;
+    --accent2: #4ecdc4;
+    --accent3: #ff6b6b;
+    --accent4: #ffd93d;
+    --accent5: #a855f7;
+    --accent6: #f97316;
+    --accent7: #06b6d4;
+    --green: #34d399;
+    --radius: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #232733 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 16px;
+    padding: 0 40px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 76px;
+    z-index: 99;
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; padding: 32px 40px; }
+  .panel.active { display: block; }
+
+  /* ── Layered Architecture ── */
+  .layer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .layer:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .layer-header h3 { font-size: 14px; font-weight: 600; }
+  .layer-header .count {
+    font-size: 11px;
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: var(--text2);
+  }
+  .layer-header .arrow {
+    transition: transform 0.3s;
+    color: var(--text2);
+    font-size: 12px;
+  }
+  .layer.open .arrow { transform: rotate(90deg); }
+
+  .layer-body {
+    display: none;
+    padding: 0 20px 16px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .layer.open .layer-body { display: flex; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip:hover { border-color: var(--accent); background: rgba(108,140,255,0.1); }
+  .chip .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── Agent Tree ── */
+  .tree { padding-left: 0; }
+  .tree ul { padding-left: 24px; list-style: none; position: relative; }
+  .tree ul::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 12px;
+    width: 1px;
+    background: var(--border);
+  }
+  .tree li {
+    position: relative;
+    padding: 6px 0 6px 16px;
+  }
+  .tree li::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 18px;
+    width: 12px;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .node {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .node:hover { border-color: var(--accent); transform: translateX(4px); }
+  .node .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge.abc { background: rgba(255,107,107,0.15); color: var(--accent3); }
+  .badge.default { background: rgba(108,140,255,0.15); color: var(--accent); }
+  .badge.new2 { background: rgba(78,205,196,0.15); color: var(--accent2); }
+
+  /* ── Event Flow ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 700px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+  }
+  .flow-step::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 32px;
+    bottom: -8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .flow-step:last-child::before { display: none; }
+
+  .flow-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .flow-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 8px;
+  }
+  .flow-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .flow-card p { font-size: 12px; color: var(--text2); }
+  .flow-card code {
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--accent2);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* ── State Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    color: var(--text2);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+  }
+  tr:hover td { background: rgba(108,140,255,0.03); }
+  .scope-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'SF Mono', monospace;
+  }
+
+  /* ── Plugin Diagram ── */
+  .plugin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .plugin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    transition: all 0.2s;
+  }
+  .plugin-card:hover { border-color: var(--accent5); }
+  .plugin-card h4 { font-size: 13px; margin-bottom: 4px; }
+  .plugin-card p { font-size: 11px; color: var(--text2); }
+
+  /* ── Decision Table ── */
+  .decision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .decision-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-left: 3px solid var(--accent);
+  }
+  .decision-card h4 { font-size: 13px; margin-bottom: 6px; }
+  .decision-card .q { color: var(--accent4); font-size: 12px; }
+  .decision-card .a { color: var(--text2); font-size: 12px; margin-top: 4px; }
+
+  /* ── Tooltip ── */
+  .tooltip-container { position: relative; }
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e2235;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text);
+    max-width: 260px;
+    z-index: 200;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+  .chip:hover .tooltip,
+  .node:hover .tooltip { display: block; }
+
+  /* ── Search ── */
+  .search-box {
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 16px 10px 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box::before {
+    content: '\1F50D';
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    header, .tabs, .panel { padding-left: 16px; padding-right: 16px; }
+    .decision-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Panorama Overview ── */
+  .panorama {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    overflow: visible;
+    min-height: 700px;
+  }
+  .panorama svg.pano-arrow { pointer-events: none; }
+  .pano-layer {
+    position: absolute;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: default;
+    transition: all 0.25s;
+    white-space: nowrap;
+    z-index: 2;
+  }
+  .pano-layer:hover { transform: scale(1.05); z-index: 10; }
+  .pano-layer .sub {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+  }
+  .pano-group {
+    position: absolute;
+    border-radius: 12px;
+    padding: 32px 14px 14px;
+    border: 1px dashed;
+    z-index: 1;
+  }
+  .pano-group-label {
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+  }
+  .pano-arrow {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .pano-arrow svg { overflow: visible; }
+  .pano-arrow-text {
+    position: absolute;
+    font-size: 9px;
+    color: var(--text2);
+    white-space: nowrap;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .pano-center {
+    position: absolute;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(108,140,255,0.15), rgba(78,205,196,0.15));
+    border: 2px solid var(--accent);
+    padding: 14px 18px;
+    z-index: 5;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(108,140,255,0.15);
+  }
+  .pano-center h3 {
+    font-size: 13px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .pano-center p { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+  /* ── Animations ── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active { animation: fadeIn 0.3s ease; }
+
+  .highlight { background: rgba(255,217,61,0.2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ADK Architecture Diagram</h1>
+  <p>Google Agent Development Kit — Interactive Architecture Map</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="layers">Module Layers</button>
+  <button class="tab" data-tab="agents">Agent Tree</button>
+  <button class="tab" data-tab="workflow">Workflow Nodes</button>
+  <button class="tab" data-tab="flow">Event Lifecycle</button>
+  <button class="tab" data-tab="state">State Management</button>
+  <button class="tab" data-tab="plugins">Plugin System</button>
+  <button class="tab" data-tab="tools">Tool System</button>
+  <button class="tab" data-tab="decisions">Design Decisions</button>
+</nav>
+
+<!-- ═══════════ TAB 0: OVERVIEW ═══════════ -->
+<section class="panel active" id="panel-overview">
+  <h2 style="font-size:16px;margin-bottom:12px;">ADK 全景架构图</h2>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">
+    关键组件与交互流程一览。悬停查看详情。
+  </p>
+  <div class="panorama" id="panorama" style="min-height:520px;max-width:860px;margin:0 auto;">
+
+    <!-- Layer 1: Entry -->
+    <div style="text-align:center;margin-bottom:6px;">
+      <div class="pano-layer" style="position:relative;display:inline-block;background:var(--accent3);border-radius:8px;">
+        App · RunConfig · CLI · API Server · Dev Server
+        <span class="sub">Entry Point</span>
+      </div>
+    </div>
+
+    <!-- Arrow down -->
+    <div style="text-align:center;margin-bottom:2px;color:var(--text2);font-size:14px;">&#9660;</div>
+
+    <!-- Layer 2: Runner Core (center) -->
+    <div style="text-align:center;margin-bottom:6px;">
+      <div class="pano-center" style="position:relative;display:inline-block;left:auto;top:auto;transform:none;width:420px;">
+        <h3 style="font-size:15px;">Runner</h3>
+        <p style="margin-bottom:8px;">Stateless execution engine — orchestrates everything</p>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+          <div class="pano-layer" style="position:relative;background:var(--accent);font-size:10px;padding:5px 10px;border-radius:6px;">
+            InvocationContext
+            <span class="sub">session, services, event_queue</span>
+          </div>
+          <div class="pano-layer" style="position:relative;background:var(--accent);font-size:10px;padding:5px 10px;border-radius:6px;">
+            PluginManager
+            <span class="sub">before / after / around hooks</span>
+          </div>
+        </div>
+        <div style="margin-top:6px;">
+          <div class="pano-layer" style="position:relative;background:var(--accent);font-size:10px;padding:5px 12px;border-radius:6px;">
+            Event Stream (AsyncGenerator[Event])
+            <span class="sub">RequestInput → LLM Response → Tool Call → FunctionResponse → done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrows down to 3 columns -->
+    <div style="display:flex;justify-content:center;gap:120px;margin-bottom:2px;color:var(--text2);font-size:14px;">
+      <span>&#9660;</span><span>&#9660;</span><span>&#9660;</span>
+    </div>
+
+    <!-- Layer 3: Three columns -->
+    <div style="display:grid;grid-template-columns:220px 1fr 220px;gap:12px;margin-bottom:6px;">
+
+      <!-- Left: Models -->
+      <div class="pano-group" style="position:relative;height:220px;border-color:rgba(249,115,22,0.3);background:rgba(249,115,22,0.03);border-radius:10px;">
+        <span class="pano-group-label" style="color:var(--accent6);">Models</span>
+        <div class="pano-layer" style="top:18px;left:8px;background:var(--accent6);border-radius:6px;">BaseLlm<span class="sub">Abstract interface</span></div>
+        <div class="pano-layer" style="top:54px;left:8px;background:#d97706;border-radius:6px;">GoogleLlm<span class="sub">Gemini</span></div>
+        <div class="pano-layer" style="top:90px;left:8px;background:#d97706;border-radius:6px;">AnthropicLlm<span class="sub">Claude</span></div>
+        <div class="pano-layer" style="top:126px;left:8px;background:#d97706;border-radius:6px;">LiteLlm<span class="sub">100+ models</span></div>
+        <div class="pano-layer" style="top:162px;left:8px;background:#d97706;border-radius:6px;">Registry<span class="sub">lookup</span></div>
+      </div>
+
+      <!-- Center: Agents + Workflow -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="pano-layer" style="position:relative;background:var(--accent2);color:#000;border-radius:8px;text-align:center;">
+          Agent (BaseAgent)
+          <span class="sub">LlmAgent · LoopAgent · SequentialAgent · ParallelAgent · LangGraphAgent · RemoteA2aAgent</span>
+        </div>
+        <div class="pano-group" style="position:relative;flex:1;min-height:140px;border-color:rgba(168,85,247,0.3);background:rgba(168,85,247,0.03);border-radius:10px;">
+          <span class="pano-group-label" style="color:var(--accent5);">Workflow (ADK 2.0)</span>
+          <div class="pano-layer" style="top:18px;left:8px;background:var(--accent5);border-radius:6px;">Workflow<span class="sub">Graph orchestration</span></div>
+          <div class="pano-layer" style="top:54px;left:8px;background:#7c3aed;border-radius:6px;">BaseNode<span class="sub">Node contract</span></div>
+          <div style="display:flex;gap:6px;margin-top:8px;padding:0 8px;">
+            <div class="pano-layer" style="position:relative;background:#7c3aed;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">FunctionNode</div>
+            <div class="pano-layer" style="position:relative;background:#7c3aed;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">ToolNode</div>
+            <div class="pano-layer" style="position:relative;background:#7c3aed;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">JoinNode</div>
+          </div>
+          <div class="pano-layer" style="top:126px;left:8px;background:#7c3aed;border-radius:6px;">Graph/Edge + NodeRunner + DynamicScheduler</div>
+        </div>
+      </div>
+
+      <!-- Right: Infra + Tools -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="pano-group" style="position:relative;height:150px;border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.03);border-radius:10px;">
+          <span class="pano-group-label" style="color:var(--green);">Infrastructure</span>
+          <div class="pano-layer" style="top:18px;left:8px;background:var(--green);color:#000;border-radius:6px;">SessionService<span class="sub">SQLite/DB/Vertex</span></div>
+          <div class="pano-layer" style="top:54px;left:8px;background:#059669;border-radius:6px;">MemoryService<span class="sub">InMem/RAG/Vertex</span></div>
+          <div class="pano-layer" style="top:90px;left:8px;background:#059669;border-radius:6px;">ArtifactService<span class="sub">Local/GCS</span></div>
+          <div class="pano-layer" style="top:126px;left:8px;background:#059669;border-radius:6px;">CredentialService<span class="sub">OAuth2</span></div>
+        </div>
+        <div class="pano-group" style="position:relative;flex:1;min-height:110px;border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.03);border-radius:10px;">
+          <span class="pano-group-label" style="color:var(--accent7);">Tools</span>
+          <div class="pano-layer" style="top:18px;left:8px;background:var(--accent7);color:#000;border-radius:6px;">BaseTool<span class="sub">run_async + declaration</span></div>
+          <div style="display:flex;gap:4px;margin-top:6px;padding:0 8px;">
+            <div class="pano-layer" style="position:relative;background:#0891b2;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">FunctionTool</div>
+            <div class="pano-layer" style="position:relative;background:#0891b2;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">AgentTool</div>
+            <div class="pano-layer" style="position:relative;background:#0891b2;border-radius:6px;font-size:9px;padding:4px 8px;flex:1;">BashTool</div>
+          </div>
+          <div class="pano-layer" style="top:82px;left:8px;background:#0891b2;border-radius:6px;">Toolset: Toolbox / CrewAI / LangChain</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cross-cutting bar -->
+    <div style="text-align:center;">
+      <div class="pano-layer" style="position:relative;display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+        <span style="color:var(--text2);font-weight:600;">Cross-cutting: </span>
+        <span style="color:var(--text);">Events</span> ·
+        <span style="color:var(--text);">Telemetry</span> ·
+        <span style="color:var(--text);">Evaluation</span> ·
+        <span style="color:var(--text);">CodeExecutor</span> ·
+        <span style="color:var(--text);">Skills</span> ·
+        <span style="color:var(--text);">Features</span> ·
+        <span style="color:var(--text);">Auth</span>
+        <span class="sub">Spanning all layers</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;max-width:860px;">
+    <div style="flex:1;min-width:200px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:11px;color:var(--text2);font-weight:600;">DATA FLOW</div>
+      <div style="font-size:11px;color:var(--text);margin-top:4px;font-family:'SF Mono',monospace;">
+        User → App → Runner → Agent → LLM → Tool Loop → Event Stream → User
+      </div>
+    </div>
+    <div style="flex:1;min-width:200px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:11px;color:var(--text2);font-weight:600;">KEY PATTERN</div>
+      <div style="font-size:11px;color:var(--text);margin-top:4px;">
+        Everything flows through <span style="color:var(--accent);">Event</span>. State routed by <span style="color:var(--accent4);">prefix</span>. Plugins hook at <span style="color:var(--accent5);">before/after/around</span>.
+      </div>
+    </div>
+    <div style="flex:1;min-width:200px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:11px;color:var(--text2);font-weight:600;">LAYERING</div>
+      <div style="font-size:11px;color:var(--text);margin-top:4px;">
+        Runner → <span style="color:var(--accent);">InvocationContext</span> → <span style="color:var(--accent2);">Agent</span> → <span style="color:var(--accent6);">LLM</span> + <span style="color:var(--accent7);">Tools</span>.
+        Workflow adds <span style="color:var(--accent5);">BaseNode</span> graph.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 1: MODULE LAYERS ═══════════ -->
+<section class="panel" id="panel-layers">
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Search modules..." oninput="filterChips(this.value)">
+  </div>
+
+  <div class="layer open" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--accent3)">Application Layer</h3>
+      <span class="count">8 components</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>App<span class="tooltip">Application container — holds root agent, config, services</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>RunConfig<span class="tooltip">Runtime configuration: model, modality, callbacks, max iterations</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>CLI<span class="tooltip">adk cli: run, deploy, eval, dev server</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>APIServer<span class="tooltip">FastAPI-based HTTP server for remote agent access</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>DevServer<span class="tooltip">Development server with hot reload and web UI</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>AgentGraph<span class="tooltip">Visualize agent hierarchy as a graph</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>ServiceRegistry<span class="tooltip">Factory for session, memory, artifact services</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent3)"></span>TriggerRoutes<span class="tooltip">Webhook and event-based trigger handling</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--accent)">Orchestration Layer</h3>
+      <span class="count">3 components</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--accent)"></span>Runner<span class="tooltip">Stateless execution engine — orchestrates agent lifecycle, manages invocation context, event consumption</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent)"></span>InvocationContext<span class="tooltip">Per-invocation singleton — holds session, all services, event queue</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent)"></span>PluginManager<span class="tooltip">Manages before/after/around plugin hooks across the pipeline</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--accent2)">Agent Layer</h3>
+      <span class="count">7 types</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>LlmAgent<span class="tooltip">Default agent — LLM-driven with tools, instructions, planner (exported as Agent)</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>LoopAgent<span class="tooltip">Repeatedly runs child agents until exit_loop_tool is called</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>SequentialAgent<span class="tooltip">Executes child agents in order, passing context between them</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>ParallelAgent<span class="tooltip">Runs child agents concurrently, aggregates results</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>LangGraphAgent<span class="tooltip">Wraps a LangGraph graph as an ADK agent</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>RemoteA2aAgent<span class="tooltip">Remote agent via A2A (Agent-to-Agent) protocol</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>BaseAgent<span class="tooltip">Abstract base — defines run_async, callbacks, state management</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--accent5)">Workflow Engine (ADK 2.0)</h3>
+      <span class="count">12 components</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>Workflow<span class="tooltip">Graph orchestration engine — extends BaseNode, runs _run_impl() loop</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>BaseNode<span class="tooltip">Contract for all nodes — output streaming, human-in-the-loop</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>FunctionNode<span class="tooltip">Executes a Python function as a graph node</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>ToolNode<span class="tooltip">Executes tool calls within a workflow graph</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>LlmAgentWrapper<span class="tooltip">Wraps LlmAgent as a BaseNode for workflow inclusion</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>JoinNode<span class="tooltip">Convergence point — waits for multiple branches to complete</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>Graph<span class="tooltip">Directed graph definition — nodes, edges, conditions</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>Edge/Trigger<span class="tooltip">Conditional and unconditional edges with trigger conditions</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>NodeRunner<span class="tooltip">Drives node.run(), event enrich/persist, returns context</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>NodeState/Status<span class="tooltip">Tracks node execution state and lifecycle status</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>DynamicNodeScheduler<span class="tooltip">Schedules dynamic nodes at runtime</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent5)"></span>ParallelWorker<span class="tooltip">Manages parallel branch execution within workflows</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--accent6)">Model / LLM Layer</h3>
+      <span class="count">8 components</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>BaseLlm<span class="tooltip">Abstract LLM interface — run_async, streaming, function calling</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>GoogleLlm<span class="tooltip">Google Gemini models via google-genai SDK</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>GeminiLlmConnection<span class="tooltip">Low-level connection to Gemini API with streaming</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>AnthropicLlm<span class="tooltip">Anthropic Claude models</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>LiteLlm<span class="tooltip">Unified interface via LiteLLM proxy for 100+ models</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>ApigeeLlm<span class="tooltip">Apigee-managed LLM endpoints</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>Registry<span class="tooltip">Model registry — lookup by model name string</span></span>
+      <span class="chip"><span class="dot" style="background:var(--accent6)"></span>GeminiContextCache<span class="tooltip">Gemini context caching for large system prompts</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--green)">Infrastructure Layer</h3>
+      <span class="count">4 services</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--green)"></span>SessionService<span class="tooltip">Conversation storage: SQLite, InMemory, Database (SQLAlchemy), Vertex AI</span></span>
+      <span class="chip"><span class="dot" style="background:var(--green)"></span>MemoryService<span class="tooltip">Long-term recall: InMemory, Vertex AI Memory Bank, RAG-based</span></span>
+      <span class="chip"><span class="dot" style="background:var(--green)"></span>ArtifactService<span class="tooltip">File management: Local, GCS, InMemory</span></span>
+      <span class="chip"><span class="dot" style="background:var(--green)"></span>CredentialService<span class="tooltip">Auth credentials: InMemory, OAuth2, credential manager</span></span>
+    </div>
+  </div>
+
+  <div class="layer" data-layer>
+    <div class="layer-header" onclick="toggleLayer(this)">
+      <h3 style="color:var(--text2)">Cross-Cutting Concerns</h3>
+      <span class="count">6 domains</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>Events<span class="tooltip">Event data model — messages, tool calls, responses, function calls</span></span>
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>Plugins<span class="tooltip">Hook system — tracing, logging, context filtering, retry</span></span>
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>Telemetry<span class="tooltip">OpenTelemetry tracing, metrics, token usage, span export</span></span>
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>Evaluation<span class="tooltip">Agent evaluation: LLM-as-judge, rubric-based, trajectory, safety</span></span>
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>CodeExecutor<span class="tooltip">Code execution: BuiltIn, UnsafeLocal, Container, GKE, Vertex AI</span></span>
+      <span class="chip"><span class="dot" style="background:var(--text2)"></span>Skills<span class="tooltip">Skill registry — prompt-based capabilities for agents</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 2: AGENT TREE ═══════════ -->
+<section class="panel" id="panel-agents">
+  <h2 style="font-size:16px;margin-bottom:16px;">Agent Inheritance Hierarchy</h2>
+  <div class="tree">
+    <ul>
+      <li>
+        <div class="node">
+          BaseAgent <span class="badge abc">ABC</span>
+          <div class="tooltip">Abstract base class. Defines run_async, run_in_new_context, before/after callbacks, state management via BaseAgentState.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node">
+              LlmAgent (Agent) <span class="badge default">DEFAULT</span>
+              <div class="tooltip">Most common agent type. model + instruction + tools + planner. Exported as `Agent` from google.adk.</div>
+            </div>
+            <ul>
+              <li><div class="node">model: str <span class="badge new2">PROP</span></div></li>
+              <li><div class="node">instruction: str <span class="badge new2">PROP</span></div></li>
+              <li><div class="node">tools: list[BaseTool] <span class="badge new2">PROP</span></div></li>
+              <li><div class="node">planner: BasePlanner <span class="badge new2">PROP</span></div></li>
+              <li><div class="node">code_executor: BaseCodeExecutor <span class="badge new2">PROP</span></div></li>
+              <li><div class="node">sub_agents: list[BaseAgent] <span class="badge new2">PROP</span></div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              LoopAgent
+              <div class="tooltip">Runs child agents in a loop. Terminates when ExitLoopTool is called or max_iterations reached.</div>
+            </div>
+            <ul>
+              <li><div class="node">child_agent: BaseAgent</div></li>
+              <li><div class="node">max_iterations: int</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              SequentialAgent
+              <div class="tooltip">Executes child agents in defined order. Passes accumulated context between them.</div>
+            </div>
+            <ul>
+              <li><div class="node">agents: list[BaseAgent] <span class="badge new2">ORDERED</span></div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              ParallelAgent
+              <div class="tooltip">Runs child agents concurrently via asyncio.gather. Aggregates results.</div>
+            </div>
+            <ul>
+              <li><div class="node">agents: list[BaseAgent] <span class="badge new2">PARALLEL</span></div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              LangGraphAgent
+              <div class="tooltip">Wraps a LangGraph graph/StateGraph as an ADK agent for interoperability.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node">
+              RemoteA2aAgent
+              <div class="tooltip">Remote agent communication via A2A (Agent-to-Agent) protocol.</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div style="margin-top:24px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <h4 style="font-size:13px;margin-bottom:8px;">Two Execution Paths</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="padding:12px;background:var(--surface2);border-radius:6px;">
+        <div style="color:var(--accent2);font-weight:600;font-size:12px;">NEW PATH (ADK 2.0)</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+          <code style="color:var(--accent2)">_run_node_async()</code><br>
+          Supports: Workflow, BaseNode,<br>
+          DynamicNodeScheduler<br>
+          <span style="color:var(--green);">Recommended for new code</span>
+        </div>
+      </div>
+      <div style="padding:12px;background:var(--surface2);border-radius:6px;">
+        <div style="color:var(--accent3);font-weight:600;font-size:12px;">OLD PATH (Legacy)</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+          <code style="color:var(--accent3)">_exec_with_plugin()</code><br>
+          Supports: BaseAgent subclasses,<br>
+          Plugin-based callbacks<br>
+          <span style="color:var(--accent4);">Backward compatibility only</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 3: WORKFLOW NODES ═══════════ -->
+<section class="panel" id="panel-workflow">
+  <h2 style="font-size:16px;margin-bottom:16px;">Workflow Node Hierarchy</h2>
+  <div class="tree">
+    <ul>
+      <li>
+        <div class="node">
+          BaseNode <span class="badge abc">ABC</span>
+          <div class="tooltip">Contract for all workflow nodes. Supports output streaming via AsyncGenerator[Event] and human-in-the-loop steps.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node">
+              Workflow <span class="badge default">ENGINE</span>
+              <div class="tooltip">Graph orchestration — START → edges → nodes → END. Implements _run_impl() as the orchestration loop.</div>
+            </div>
+            <ul>
+              <li><div class="node">Graph — directed graph with nodes and edges</div></li>
+              <li><div class="node">Edge / EdgeItem — conditional and unconditional transitions</div></li>
+              <li><div class="node">Trigger — condition-based edge activation</div></li>
+              <li><div class="node">DynamicNodeScheduler — runtime node scheduling</div></li>
+              <li><div class="node">ParallelWorker — concurrent branch execution</div></li>
+              <li><div class="node">ReplaySequenceBarrier — replay/rehydration support</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              FunctionNode
+              <div class="tooltip">Executes a synchronous or async Python function. Returns result as Event.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node">
+              ToolNode
+              <div class="tooltip">Executes tool calls within a workflow. Handles tool confirmation and results.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node">
+              LlmAgentWrapper
+              <div class="tooltip">Wraps an LlmAgent as a BaseNode so it can be included in a workflow graph.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node">
+              JoinNode
+              <div class="tooltip">Convergence point — waits for all incoming branches to reach terminal state before proceeding.</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div style="margin-top:24px;">
+    <h4 style="font-size:13px;margin-bottom:12px;">Why Runner / NodeRunner Separation?</h4>
+    <div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text2);">
+      If Runner and NodeRunner were merged, nested workflows would cause <span style="color:var(--accent3)">deadlocks</span> — the inner workflow's NodeRunner would block the outer Runner's event consumption. Three-layer separation prevents this:
+      <br><br>
+      <code style="color:var(--accent)">Runner</code> (lifecycle) → <code style="color:var(--accent2)">NodeRunner</code> (scheduling) → <code style="color:var(--accent5)">Workflow</code> (graph traversal)
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 4: EVENT LIFECYCLE ═══════════ -->
+<section class="panel" id="panel-flow">
+  <h2 style="font-size:16px;margin-bottom:20px;">Event Lifecycle — One Invocation</h2>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-card">
+        <h4>Runner.run_async()</h4>
+        <p>Entry point. Parameters: <code>app_name</code>, <code>user_id</code>, <code>session_id</code>, <code>new_message</code></p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-card">
+        <h4>Create InvocationContext</h4>
+        <p>Per-invocation singleton. Wires up: <code>session_service</code>, <code>memory_service</code>, <code>artifact_service</code>, <code>credential_service</code>, <code>plugin_manager</code>, <code>_event_queue</code> (asyncio.Queue)</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-card">
+        <h4>Load Session History</h4>
+        <p>Fetch prior events from session store. Build context window from recent events. Apply <code>app:</code>, <code>user:</code> state merges.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-card">
+        <h4>Create RequestInput Event</h4>
+        <p>Wrap user message as <code>Event</code> with <code>EventActions.REQUEST_INPUT</code>. Append to session via <code>append_event()</code>.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-card">
+        <h4>Request Pipeline Processing</h4>
+        <p>Processors run in order: <code>basic</code> → <code>instructions</code> → <code>contents</code> → <code>code_execution.request_processor</code></p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">6</div>
+      <div class="flow-card">
+        <h4>LLM Call (BaseLlm.run_async)</h4>
+        <p>Build <code>LlmRequest</code>, call model, receive streaming <code>LlmResponse</code> with Content chunks. Plugin <code>around_llm_call()</code> wraps this.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">7</div>
+      <div class="flow-card">
+        <h4>Response Pipeline Processing</h4>
+        <p><code>nl_planning</code> → <code>code_execution.response_processor</code> (extract code blocks, execute, wrap results)</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">8</div>
+      <div class="flow-card">
+        <h4>Tool Call Loop (if applicable)</h4>
+        <p>LLM returns function calls → <code>ToolNode</code> executes → <code>FunctionResponse</code> Event → back to LLM. Repeat until no more tool calls.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">9</div>
+      <div class="flow-card">
+        <h4>Events Stream via EventQueue</h4>
+        <p>Events written to <code>ic._event_queue</code> (asyncio.Queue). Runner consumes them. <code>done_sentinel</code> marks completion.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">10</div>
+      <div class="flow-card">
+        <h4>Return AsyncGenerator[Event]</h4>
+        <p>Caller receives streaming events. Session state persisted. Plugin <code>after_agent()</code> hooks fire.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 5: STATE MANAGEMENT ═══════════ -->
+<section class="panel" id="panel-state">
+  <h2 style="font-size:16px;margin-bottom:16px;">State Management — Prefix-Based Routing</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Scope</th>
+        <th>Key Prefix</th>
+        <th>Storage</th>
+        <th>Lifetime</th>
+        <th>Sharing</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="scope-tag" style="background:rgba(108,140,255,0.15);color:var(--accent)">Session</span></td>
+        <td><code>locale</code> (none)</td>
+        <td><code>sessions.state</code></td>
+        <td>Session alive</td>
+        <td>Single session</td>
+      </tr>
+      <tr>
+        <td><span class="scope-tag" style="background:rgba(255,107,107,0.15);color:var(--accent3)">App</span></td>
+        <td><code>app:theme</code></td>
+        <td><code>app_states.state</code></td>
+        <td>Permanent</td>
+        <td>All sessions + users in app</td>
+      </tr>
+      <tr>
+        <td><span class="scope-tag" style="background:rgba(78,205,196,0.15);color:var(--accent2)">User</span></td>
+        <td><code>user:name</code></td>
+        <td><code>user_states.state</code></td>
+        <td>Permanent</td>
+        <td>All sessions for (app, user)</td>
+      </tr>
+      <tr>
+        <td><span class="scope-tag" style="background:rgba(255,217,61,0.15);color:var(--accent4)">Temp</span></td>
+        <td><code>temp:draft</code></td>
+        <td>Memory only</td>
+        <td>Single invocation</td>
+        <td>Agents within invocation</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:20px;">
+    <h4 style="font-size:13px;margin-bottom:12px;">Identity Triple</h4>
+    <div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="font-family:'SF Mono',monospace;font-size:12px;color:var(--accent2);">
+        PRIMARY KEY (app_name, user_id, id) — sessions<br>
+        PRIMARY KEY (app_name) — app_states<br>
+        PRIMARY KEY (app_name, user_id) — user_states<br>
+        PRIMARY KEY (app_name, user_id, session_id, id) — events
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;">
+    <h4 style="font-size:13px;margin-bottom:12px;">Storage Implementations</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+      <div class="plugin-card">
+        <h4 style="color:var(--accent)">SqliteSessionService</h4>
+        <p>Single-file SQLite via aiosqlite + JSON serialization. Default for local development.</p>
+      </div>
+      <div class="plugin-card">
+        <h4 style="color:var(--accent2)">InMemorySessionService</h4>
+        <p>Pure memory dict. For testing and ephemeral sessions.</p>
+      </div>
+      <div class="plugin-card">
+        <h4 style="color:var(--accent5)">DatabaseSessionService</h4>
+        <p>SQLAlchemy multi-engine: SQLite, PostgreSQL, Spanner, etc.</p>
+      </div>
+      <div class="plugin-card">
+        <h4 style="color:var(--accent6)">VertexAiSessionService</h4>
+        <p>GCP Vertex AI managed session storage for production.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 6: PLUGIN SYSTEM ═══════════ -->
+<section class="panel" id="panel-plugins">
+  <h2 style="font-size:16px;margin-bottom:8px;">Plugin System</h2>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Hooks into the execution pipeline at three points.</p>
+
+  <div style="display:flex;gap:12px;margin-bottom:20px;">
+    <div style="flex:1;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+      <div style="color:var(--accent4);font-weight:600;font-size:13px;">before_agent()</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">Before agent execution.<br>Modify request, inject context.</div>
+    </div>
+    <div style="flex:1;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+      <div style="color:var(--accent);font-weight:600;font-size:13px;">around_llm_call()</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">Wrap LLM invocation.<br>Transform request/response.</div>
+    </div>
+    <div style="flex:1;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+      <div style="color:var(--accent2);font-weight:600;font-size:13px;">after_agent()</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">After agent completes.<br>Log, summarize, persist.</div>
+    </div>
+  </div>
+
+  <div class="plugin-grid">
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">AutoTracingPlugin</h4>
+      <p>Automatic OpenTelemetry span creation for agent execution traces.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">ContextFilterPlugin</h4>
+      <p>Filters and trims context window to stay within token limits.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">DebugLoggingPlugin</h4>
+      <p>Detailed debug output for development and troubleshooting.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">GlobalInstructionPlugin</h4>
+      <p>Injects global instructions into every agent's system prompt.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">LoggingPlugin</h4>
+      <p>Standard structured logging of agent execution events.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">MultimodalToolResultsPlugin</h4>
+      <p>Handles multimodal (image, audio) tool results in the response.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">ReflectRetryToolPlugin</h4>
+      <p>Automatic retry with reflection when tool execution fails.</p>
+    </div>
+    <div class="plugin-card">
+      <h4 style="color:var(--accent5)">SaveFilesAsArtifactsPlugin</h4>
+      <p>Automatically saves tool output files as session artifacts.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 7: TOOL SYSTEM ═══════════ -->
+<section class="panel" id="panel-tools">
+  <h2 style="font-size:16px;margin-bottom:16px;">Tool System</h2>
+
+  <div class="tree">
+    <ul>
+      <li>
+        <div class="node">
+          BaseTool <span class="badge abc">ABC</span>
+          <div class="tooltip">Abstract tool interface. Defines run_async(), get_declaration() (OpenAPI schema), description.</div>
+        </div>
+        <ul>
+          <li><div class="node">FunctionTool <span class="badge default">COMMON</span></div></li>
+          <li><div class="node">AgentTool</div></li>
+          <li><div class="node">TransferToAgentTool</div></li>
+          <li><div class="node">BashTool</div></li>
+          <li><div class="node">GoogleSearchTool</div></li>
+          <li><div class="node">LoadWebPage</div></li>
+          <li><div class="node">GetUserChoiceTool</div></li>
+          <li><div class="node">ExitLoopTool</div></li>
+          <li><div class="node">SetModelResponseTool</div></li>
+          <li><div class="node">LoadMemoryTool / PreloadMemoryTool</div></li>
+          <li><div class="node">SkillToolset</div></li>
+          <li><div class="node">UrlContextTool</div></li>
+          <li><div class="node">ComputerUseToolset</div></li>
+          <li><div class="node">DiscoveryEngineSearchTool</div></li>
+          <li><div class="node">VertexAiSearchTool</div></li>
+        </ul>
+      </li>
+      <li style="margin-top:12px;">
+        <div class="node">
+          BaseToolset <span class="badge abc">ABC</span>
+          <div class="tooltip">Container for multiple tools. Enables bulk tool registration and management.</div>
+        </div>
+        <ul>
+          <li><div class="node">ToolboxToolset <span class="badge new2">GOOGLE</span></div></li>
+          <li><div class="node">CrewaiToolset</div></li>
+          <li><div class="node">LangchainToolset</div></li>
+          <li><div class="node">SkillToolset</div></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div style="margin-top:20px;">
+    <h4 style="font-size:13px;margin-bottom:12px;">Tool Execution Flow</h4>
+    <div style="font-family:'SF Mono',monospace;font-size:11px;color:var(--text2);padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);line-height:2;">
+      LLM returns FunctionCall<br>
+      &nbsp;&nbsp;↓<br>
+      Runner finds matching tool by name<br>
+      &nbsp;&nbsp;↓<br>
+      ToolContext created (session_id, user_id, etc.)<br>
+      &nbsp;&nbsp;↓<br>
+      tool.run_async(args, tool_context)<br>
+      &nbsp;&nbsp;↓<br>
+      Result → FunctionResponse Event → appended to session<br>
+      &nbsp;&nbsp;↓<br>
+      Sent back to LLM for next turn
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TAB 8: DESIGN DECISIONS ═══════════ -->
+<section class="panel" id="panel-decisions">
+  <h2 style="font-size:16px;margin-bottom:16px;">Key Design Decisions</h2>
+
+  <div class="decision-grid">
+    <div class="decision-card">
+      <h4>Runner / NodeRunner Separation</h4>
+      <div class="q">Q: Why not merge Runner and NodeRunner?</div>
+      <div class="a">A: Nested workflows would deadlock — inner NodeRunner blocks outer Runner's event consumption. Three layers prevent this.</div>
+    </div>
+    <div class="decision-card">
+      <h4>Event as Single Data Flow</h4>
+      <div class="q">Q: Why everything through Event?</div>
+      <div class="a">A: All interactions (messages, tool calls, responses) flow through Event. Enables persistence, replay, evaluation, and streaming.</div>
+    </div>
+    <div class="decision-card">
+      <h4>Context 1:1 Node Mapping</h4>
+      <div class="q">Q: Why each node gets its own Context?</div>
+      <div class="a">A: Isolates node state, output, route decisions, and interrupt IDs. Prevents cross-node state pollution.</div>
+    </div>
+    <div class="decision-card">
+      <h4>InvocationContext Singleton</h4>
+      <div class="q">Q: Why one InvocationContext per call?</div>
+      <div class="a">A: Shares services and event queue across all nodes in a single invocation. Avoids recreating connections and state.</div>
+    </div>
+    <div class="decision-card">
+      <h4>State Prefix Routing</h4>
+      <div class="q">Q: Why app:/user:/temp: prefixes?</div>
+      <div class="a">A: Different scopes have different lifecycles. App = global, User = cross-session, Temp = invocation-only, Session = isolated.</div>
+    </div>
+    <div class="decision-card">
+      <h4>Plugin Hook System</h4>
+      <div class="q">Q: Why before/after/around hooks?</div>
+      <div class="a">A: Cross-cutting concerns (tracing, logging, filtering, retry) are decoupled from core logic. Composable and optional.</div>
+    </div>
+    <div class="decision-card">
+      <h4>Dual Execution Paths</h4>
+      <div class="q">Q: Why maintain two execution paths?</div>
+      <div class="a">A: New node runtime (ADK 2.0) supports Workflow and BaseNode. Old plugin path provides backward compatibility during migration.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Layer toggle
+function toggleLayer(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+// Search/filter
+function filterChips(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('#panel-layers .chip').forEach(chip => {
+    const text = chip.textContent.toLowerCase();
+    chip.style.display = text.includes(q) ? '' : 'none';
+  });
+  // Auto-open layers when searching
+  if (q) {
+    document.querySelectorAll('#panel-layers .layer').forEach(l => l.classList.add('open'));
+  }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const tabs = [...document.querySelectorAll('.tab')];
+  const active = tabs.findIndex(t => t.classList.contains('active'));
+  if (e.key === 'ArrowRight' && active < tabs.length - 1) {
+    tabs[active + 1].click();
+  } else if (e.key === 'ArrowLeft' && active > 0) {
+    tabs[active - 1].click();
+  }
+});
+</script>
+</body>
+</html>
