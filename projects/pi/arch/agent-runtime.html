@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pi Agent Runtime Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    padding: 32px;
+    line-height: 1.5;
+  }
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    color: #58a6ff;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #8b949e;
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-title {
+    font-size: 20px;
+    color: #f0883e;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+  .ascii-block {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: pre;
+    color: #8b949e;
+  }
+  .ascii-block .hl { color: #58a6ff; }
+  .ascii-block .hl2 { color: #f0883e; }
+  .ascii-block .hl3 { color: #3fb950; }
+  .ascii-block .hl4 { color: #a371f7; }
+
+  /* Diagram styles */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+  }
+  .box {
+    border: 2px solid;
+    border-radius: 10px;
+    padding: 16px 20px;
+    min-width: 280px;
+    text-align: center;
+    position: relative;
+    transition: transform 0.15s;
+  }
+  .box:hover { transform: translateY(-2px); }
+  .box-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .box-body {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .box-body ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+  }
+  .box-body li {
+    padding: 2px 0;
+  }
+  .box-body li::before {
+    content: "• ";
+    opacity: 0.5;
+  }
+
+  .agent-box {
+    border-color: #58a6ff;
+    background: rgba(88,166,255,0.06);
+  }
+  .agent-box .box-title { color: #58a6ff; }
+
+  .loop-box {
+    border-color: #3fb950;
+    background: rgba(63,185,80,0.06);
+  }
+  .loop-box .box-title { color: #3fb950; }
+
+  .stream-box {
+    border-color: #f0883e;
+    background: rgba(240,136,62,0.06);
+  }
+  .stream-box .box-title { color: #f0883e; }
+
+  .provider-box {
+    border-color: #a371f7;
+    background: rgba(163,113,247,0.06);
+  }
+  .provider-box .box-title { color: #a371f7; }
+
+  .arrow {
+    color: #484f58;
+    font-size: 20px;
+    padding: 4px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .arrow span {
+    font-size: 11px;
+    color: #8b949e;
+    padding: 2px 8px;
+    background: #0d1117;
+    border-radius: 3px;
+  }
+  .arrow-line {
+    width: 2px;
+    height: 18px;
+    background: #484f58;
+  }
+
+  .row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hook-box {
+    border-color: #d29922;
+    background: rgba(210,153,34,0.06);
+    min-width: 220px;
+  }
+  .hook-box .box-title { color: #d29922; }
+
+  .queue-box {
+    border-color: #79c0ff;
+    background: rgba(121,192,255,0.06);
+    min-width: 200px;
+  }
+  .queue-box .box-title { color: #79c0ff; }
+
+  .label-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #21262d;
+    color: #8b949e;
+    margin: 2px;
+  }
+
+  /* Events timeline */
+  .timeline {
+    border-left: 3px solid #30363d;
+    padding-left: 20px;
+    margin-left: 20px;
+  }
+  .timeline-item {
+    position: relative;
+    padding: 6px 0;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -27px;
+    top: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #58a6ff;
+    border: 2px solid #0d1117;
+  }
+  .timeline-item.sub::before { background: #3fb950; }
+  .timeline-item.end::before { background: #f0883e; }
+  .timeline-item.tool::before { background: #a371f7; }
+  .timeline-event {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: #c9d1d9;
+    background: #161b22;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .timeline-desc {
+    font-size: 12px;
+    color: #8b949e;
+    margin-left: 8px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #21262d;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  th {
+    background: #161b22;
+    color: #58a6ff;
+    font-weight: 600;
+  }
+  td:first-child {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: #f0883e;
+  }
+  tr:hover td { background: #161b22; }
+</style>
+</head>
+<body>
+
+<h1>pi Agent Runtime Architecture</h1>
+<p class="subtitle">packages/agent — Stateful agent loop with tool execution, streaming, and lifecycle events</p>
+
+<!-- ==================== VISUAL DIAGRAM ==================== -->
+<div class="section">
+  <h2 class="section-title">1. Component Diagram</h2>
+
+  <div class="diagram">
+
+    <!-- App Layer -->
+    <div class="box agent-box" style="min-width:520px;">
+      <div class="box-title">Agent (agent.ts)</div>
+      <div class="box-body">
+        <div class="row">
+          <div style="flex:1;">
+            <strong style="color:#58a6ff;">State</strong>
+            <ul>
+              <li>messages[] (transcript)</li>
+              <li>tools[]</li>
+              <li>model / thinkingLevel</li>
+              <li>isStreaming / pendingToolCalls</li>
+            </ul>
+          </div>
+          <div style="flex:1;">
+            <strong style="color:#79c0ff;">Queues</strong>
+            <ul>
+              <li>SteeringQueue — inject mid-run</li>
+              <li>FollowUpQueue — after stop</li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <strong style="color:#d29922;">API</strong>
+          <span class="label-tag">prompt()</span>
+          <span class="label-tag">continue()</span>
+          <span class="label-tag">steer()</span>
+          <span class="label-tag">followUp()</span>
+          <span class="label-tag">abort()</span>
+          <span class="label-tag">subscribe()</span>
+          <span class="label-tag">reset()</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <span>runAgentLoop() / runAgentLoopContinue()</span>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Agent Loop -->
+    <div class="box loop-box" style="min-width:520px;">
+      <div class="box-title">Agent Loop (agent-loop.ts)</div>
+      <div class="box-body" style="text-align:left; padding-left:16px;">
+        <div style="margin:6px 0;"><strong style="color:#3fb950;">Outer while(true)</strong></div>
+        <div style="margin-left:20px; border-left:2px solid #30363d; padding-left:16px;">
+          <div style="margin:4px 0;"><strong style="color:#3fb950;">Inner while(hasMoreToolCalls || pendingMsgs)</strong></div>
+          <div style="margin-left:20px; border-left:2px solid #30363d; padding-left:16px;">
+            <div style="margin:4px 0;">① drain steering → inject into context</div>
+            <div style="margin:4px 0;">② <strong style="color:#f0883e;">streamAssistantResponse()</strong></div>
+            <div style="margin:4px 0;">③ <strong style="color:#a371f7;">executeToolCalls()</strong> — sequential or parallel</div>
+            <div style="margin:4px 0;">④ emit turn_end → prepareNextTurn()</div>
+            <div style="margin:4px 0;">⑤ poll steering messages</div>
+          </div>
+        </div>
+        <div style="margin:6px 0;">⑥ poll followUp → continue outer loop</div>
+        <div style="margin:4px 0;">⑦ emit agent_end(messages)</div>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <span>streamAssistantResponse() — AgentMessage[] → Message[]</span>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Stream Layer -->
+    <div class="box stream-box" style="min-width:520px;">
+      <div class="box-title">Stream Function (streamFn)</div>
+      <div class="box-body">
+        <div class="row">
+          <div style="flex:1; text-align:center;">
+            <strong style="color:#3fb950;">streamSimple()</strong><br>
+            <span style="font-size:12px;">pi-ai/base</span><br>
+            <span style="font-size:12px; color:#8b949e;">Direct API calls</span>
+          </div>
+          <div style="width:1px; background:#30363d;"></div>
+          <div style="flex:1; text-align:center;">
+            <strong style="color:#a371f7;">streamProxy()</strong><br>
+            <span style="font-size:12px;">agent/proxy</span><br>
+            <span style="font-size:12px; color:#8b949e;">POST /api/stream → SSE</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <strong>Events:</strong>
+          <span class="label-tag">text_delta</span>
+          <span class="label-tag">thinking_delta</span>
+          <span class="label-tag">toolcall_delta</span>
+          <span class="label-tag">done</span>
+          <span class="label-tag">error</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <span>LLM Provider API</span>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Providers -->
+    <div class="row" style="gap:12px;">
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">openai</div>
+      </div>
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">anthropic</div>
+      </div>
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">google</div>
+      </div>
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">bedrock</div>
+      </div>
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">mistral</div>
+      </div>
+      <div class="box provider-box" style="min-width:120px; padding:10px 14px;">
+        <div class="box-title" style="font-size:14px;">openrouter</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HOOKS DIAGRAM ==================== -->
+<div class="section">
+  <h2 class="section-title">2. Hooks &amp; Extension Points</h2>
+
+  <div class="diagram">
+    <div class="row" style="gap:16px;">
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">beforeToolCall()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Validate arguments</li>
+            <li>Block execution → { block: true, reason }</li>
+            <li>Honor abort signal</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">afterToolCall()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Override content</li>
+            <li>Override details</li>
+            <li>Set terminate hint</li>
+            <li>Set error flag</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">prepareNextTurn()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Swap context</li>
+            <li>Change model mid-run</li>
+            <li>Adjust thinking level</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">shouldStopAfterTurn()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Graceful stop hint</li>
+            <li>Before context gets too full</li>
+            <li>Skip follow-up polling</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="gap:16px; margin-top:16px;">
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">convertToLlm()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>AgentMessage[] → Message[]</li>
+            <li>Filter UI-only messages</li>
+            <li>Map custom message types</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">transformContext()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Prune old messages</li>
+            <li>Inject external context</li>
+            <li>Run before convertToLlm</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box hook-box" style="min-width:260px;">
+        <div class="box-title">getApiKey()</div>
+        <div class="box-body" style="text-align:left;">
+          <ul>
+            <li>Dynamic key resolution</li>
+            <li>Short-lived OAuth tokens</li>
+            <li>Per-call key rotation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EVENT TIMELINE ==================== -->
+<div class="section">
+  <h2 class="section-title">3. Lifecycle Events</h2>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <span class="timeline-event">agent_start</span>
+      <span class="timeline-desc">Run begins</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">turn_start</span>
+      <span class="timeline-desc">New turn (assistant response + tool calls)</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">message_start (user)</span>
+      <span class="timeline-desc">Prompt injected</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">message_end (user)</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">message_start (assistant)</span>
+      <span class="timeline-desc">Streaming begins</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">message_update × N</span>
+      <span class="timeline-desc">text_delta / thinking_delta / toolcall_delta</span>
+    </div>
+    <div class="timeline-item sub">
+      <span class="timeline-event">message_end (assistant)</span>
+      <span class="timeline-desc">Final assistant message</span>
+    </div>
+    <div class="timeline-item tool">
+      <span class="timeline-event">tool_execution_start</span>
+      <span class="timeline-desc">Per tool call</span>
+    </div>
+    <div class="timeline-item tool">
+      <span class="timeline-event">tool_execution_update × N</span>
+      <span class="timeline-desc">Optional partial progress</span>
+    </div>
+    <div class="timeline-item tool">
+      <span class="timeline-event">tool_execution_end</span>
+      <span class="timeline-desc">Result ready</span>
+    </div>
+    <div class="timeline-item end">
+      <span class="timeline-event">turn_end</span>
+      <span class="timeline-desc">message + toolResults[]</span>
+    </div>
+    <div class="timeline-item">
+      <span class="timeline-event" style="color:#f0883e; font-weight:bold;">agent_end</span>
+      <span class="timeline-desc">Run complete — messages[] returned, listeners awaited</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOOL EXECUTION ==================== -->
+<div class="section">
+  <h2 class="section-title">4. Tool Execution Modes</h2>
+
+  <div class="row" style="gap:32px; justify-content:center;">
+
+    <div class="box loop-box" style="min-width:300px;">
+      <div class="box-title">Sequential</div>
+      <div class="box-body" style="text-align:left; font-size:13px;">
+        <div style="margin:4px 0;">① prepare → ② execute → ③ finalize</div>
+        <div style="margin:4px 0;">① prepare → ② execute → ③ finalize</div>
+        <div style="margin:4px 0;">① prepare → ② execute → ③ finalize</div>
+        <div style="margin-top:8px; color:#8b949e;">Each tool call fully completes before the next starts</div>
+      </div>
+    </div>
+
+    <div class="box provider-box" style="min-width:300px;">
+      <div class="box-title">Parallel (default)</div>
+      <div class="box-body" style="text-align:left; font-size:13px;">
+        <div style="margin:4px 0;"><strong>Preflight:</strong> prepare all sequentially</div>
+        <div style="margin:4px 0;"><strong>Execute:</strong> allowed tools run concurrently</div>
+        <div style="margin:4px 0;"><strong>emit end:</strong> in tool completion order</div>
+        <div style="margin:4px 0;"><strong>emit results:</strong> in assistant source order</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:20px; text-align:center;">
+    <div class="box hook-box" style="display:inline-block; min-width:340px;">
+      <div class="box-title">AgentTool Interface</div>
+      <div class="box-body" style="text-align:left;">
+        <ul>
+          <li><strong>name, label, description</strong> — metadata</li>
+          <li><strong>parameters</strong> — TypeBox schema for validation</li>
+          <li><strong>prepareArguments?(args)</strong> — compatibility shim</li>
+          <li><strong>execute(id, params, signal, onUpdate)</strong> → AgentToolResult</li>
+          <li><strong>executionMode?</strong> — per-tool override ("sequential" | "parallel")</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ASCII DIAGRAM ==================== -->
+<div class="section">
+  <h2 class="section-title">5. ASCII Architecture Diagram</h2>
+  <div class="ascii-block"><span class="hl">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="hl">│</span>                        <span class="hl2">pi Agent Runtime</span>                            <span class="hl">│</span>
+<span class="hl">├─────────────────────────────────────────────────────────────────────┤</span>
+<span class="hl">│</span>                                                                     <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">┌─────────────────────────────────────────────────────────────┐</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>                        <span class="hl2">Agent (agent.ts)</span>                     <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>                                                             <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">┌─────────────┐</span>  <span class="hl3">┌──────────────┐</span>  <span class="hl3">┌─────────────────┐</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> AgentState  <span class="hl3">│</span>  <span class="hl3">│</span> SteeringQueue<span class="hl3">│</span>  <span class="hl3">│</span>  FollowUpQueue  <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> • messages  <span class="hl3">│</span>  <span class="hl3">│</span> (mid-run)    <span class="hl3">│</span>  <span class="hl3">│</span>  (after stop)   <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> • tools     <span class="hl3">│</span>  <span class="hl3">└──────┬───────┘</span>  <span class="hl3">└────────┬────────┘</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> • model     <span class="hl3">│</span>         <span class="hl3">│</span>                   <span class="hl3">│</span>            <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> • thinking  <span class="hl3">│</span>  steer()<span class="hl3">│</span>            followUp()          <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">│</span> • isStream. <span class="hl3">│</span>         <span class="hl3">▼</span>                   <span class="hl3">▼</span>            <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  <span class="hl3">└──────┬──────┘</span>  <span class="hl3">┌──────────────────────────────────┐</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span>        AgentLoopConfig           <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • convertToLlm()                 <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • transformContext()             <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • beforeToolCall() / afterTool() <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • prepareNextTurn()              <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • getSteering/FollowUpMessages() <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">│</span> • shouldStopAfterTurn()          <span class="hl3">│</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>         <span class="hl3">└──────────────┬───────────────────┘</span>   <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">│</span>                        <span class="hl3">│</span>                        <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>         <span class="hl3">▼</span>                        <span class="hl3">▼</span>                        <span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">│</span>  prompt() / continue() ──► <span class="hl4">runAgentLoop</span> / runAgentLoopCont<span class="hl2">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl2">└──────────────────────────────┬───────────────────────────┘</span>   <span class="hl">│</span>
+<span class="hl">│</span>                                <span class="hl">│</span>                                 <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">┌─────────────────────────────</span><span class="hl">▼</span><span class="hl">───────────────────────────┐</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>                    <span class="hl4">Agent Loop (agent-loop.ts)</span>           <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>                                                         <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   Outer while(true)                                     <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   ┌─────────────────────────────────────────────────┐  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  Inner while(hasMoreToolCalls || pendingMsgs)   <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>                                                 <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  1. drain steering messages → inject context    <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>         ▼                                       <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  2. streamAssistantResponse() ───┐              <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>         ▼                        <span class="hl">│</span>              <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  3. executeToolCalls() ◄─────────┘              <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>     • prepare (schema validate)                 <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>     • execute (sequential or parallel)          <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>     • finalize (afterToolCall hook)             <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>         ▼                                       <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  4. emit turn_end, prepareNextTurn()            <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>  5. poll steering                               <span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl">└─────────────────────────────────────────────────┘</span>  <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>         ▼                                               <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   poll followUpMessages()                               <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   emit agent_end(messages)                              <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">└────────────────────────┬────────────────────────────────┘</span>   <span class="hl">│</span>
+<span class="hl">│</span>                           <span class="hl">│</span>                                     <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">┌────────────────────────</span><span class="hl">▼</span><span class="hl">───────────────────────────────┐</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>           <span class="hl3">streamAssistantResponse()</span>                     <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>                                                         <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   AgentMessage[] ──[transformContext]──► AgentMessage[] <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>       ──[convertToLlm]──► Message[] (LLM format)       <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>                                                         <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">┌───────────────────────────────────────────────┐</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">│</span>  streamFn(model, context, opts)               <span class="hl3">│</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">│</span>                                               <span class="hl3">│</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">│</span>  Default: streamSimple() ──► pi-ai provider   <span class="hl3">│</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">│</span>  Proxy:   streamProxy()  ──► HTTP SSE server  <span class="hl3">│</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   <span class="hl3">└───────────────────────────────────────────────┘</span>    <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>         <span class="hl">│</span>                                               <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>         <span class="hl">▼</span>                                               <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   AssistantMessageEvent stream (partial updates)        <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">│</span>   text_delta / thinking_delta / toolcall_delta          <span class="hl">│</span>   <span class="hl">│</span>
+<span class="hl">│</span>  <span class="hl">└────────────────────────┬────────────────────────────────┘</span>   <span class="hl">│</span>
+<span class="hl">│</span>                           <span class="hl">│</span>                                     <span class="hl">│</span>
+<span class="hl">└───────────────────────────┼─────────────────────────────────────┘</span>
+                            <span class="hl">│</span>
+              ┌─────────────┴──────────────┐
+              <span class="hl">│</span>                            <span class="hl">│</span>
+              <span class="hl">▼</span>                            <span class="hl">▼</span>
+     <span class="hl3">┌─────────────────┐</span>        <span class="hl4">┌──────────────────┐</span>
+     <span class="hl3">│</span>  streamSimple() <span class="hl3">│</span>        <span class="hl4">│</span>  streamProxy()   <span class="hl4">│</span>
+     <span class="hl3">│</span>  (pi-ai/base)   <span class="hl3">│</span>        <span class="hl4">│</span>  (agent/proxy)   <span class="hl4">│</span>
+     <span class="hl3">│</span>                 <span class="hl3">│</span>        <span class="hl4">│</span>                  <span class="hl4">│</span>
+     <span class="hl3">│</span>  Direct API:    <span class="hl3">│</span>        <span class="hl4">│</span>  Via server:     <span class="hl4">│</span>
+     <span class="hl3">│</span>  • openai       <span class="hl3">│</span>        <span class="hl4">│</span>  POST /api/stream<span class="hl4">│</span>
+     <span class="hl3">│</span>  • anthropic    <span class="hl3">│</span>        <span class="hl4">│</span>  SSE events back <span class="hl4">│</span>
+     <span class="hl3">│</span>  • google       <span class="hl3">│</span>        <span class="hl4">│</span>  partial stripped<span class="hl4">│</span>
+     <span class="hl3">│</span>  • bedrock      <span class="hl3">│</span>        <span class="hl4">│</span>  client reconstruct<span class="hl4">│</span>
+     <span class="hl3">│</span>  • mistral      <span class="hl3">│</span>        <span class="hl4">└──────────────────┘</span>
+     <span class="hl3">│</span>  • openrouter   <span class="hl3">│</span>
+     <span class="hl3">│</span>  • etc.         <span class="hl3">│</span>
+     <span class="hl3">└─────────────────┘</span></div>
+</div>
+
+<!-- ==================== COMPONENTS TABLE ==================== -->
+<div class="section">
+  <h2 class="section-title">6. Package Structure</h2>
+
+  <table>
+    <tr>
+      <th>File</th>
+      <th>Component</th>
+      <th>Responsibility</th>
+    </tr>
+    <tr>
+      <td>agent.ts</td>
+      <td>Agent class</td>
+      <td>Stateful wrapper: transcript, tools, model, queues, lifecycle, AbortController</td>
+    </tr>
+    <tr>
+      <td>agent-loop.ts</td>
+      <td>runAgentLoop</td>
+      <td>Pure function loop: AgentMessage throughout, tool execution, LLM call boundary conversion</td>
+    </tr>
+    <tr>
+      <td>proxy.ts</td>
+      <td>streamProxy</td>
+      <td>HTTP SSE proxy: POST /api/stream, client-side partial reconstruction</td>
+    </tr>
+    <tr>
+      <td>types.ts</td>
+      <td>Type definitions</td>
+      <td>AgentMessage, AgentEvent, AgentTool, AgentLoopConfig, hooks, queues</td>
+    </tr>
+    <tr>
+      <td>harness/compaction/</td>
+      <td>Compaction</td>
+      <td>Context window management: branch summarization, token estimation, cut-point finding</td>
+    </tr>
+    <tr>
+      <td>harness/session/</td>
+      <td>Session</td>
+      <td>Conversation persistence: JSONL repo, memory storage, UUID v7</td>
+    </tr>
+    <tr>
+      <td>harness/skills.ts</td>
+      <td>Skills</td>
+      <td>Skill loading and management for agent prompts</td>
+    </tr>
+    <tr>
+      <td>harness/system-prompt.ts</td>
+      <td>System Prompt</td>
+      <td>System prompt template generation</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>
