@@ -1,0 +1,17 @@
+{
+  "folders": [
+    { "name": "Atlas", "path": "." },
+    { "name": "Kimi Code", "path": "../kimi-code" },
+    { "name": "Codex", "path": "../codex" },
+    { "name": "Hermes Agent", "path": "../hermes-agent" },
+    { "name": "OpenHands", "path": "../OpenHands" },
+    { "name": "Google ADK", "path": "../adk-python" },
+    { "name": "mini-SWE-agent", "path": "../mini-swe-agent" },
+    { "name": "Pi", "path": "../earendil-works/pi" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.DS_Store": true
+    }
+  }
+}
