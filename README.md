@@ -55,6 +55,7 @@ agent-systems-atlas/
 | 项目 | 当前内容 |
 | --- | --- |
 | [Kimi Code](projects/kimi-code/README.md) | 核心架构、执行循环、与 Hermes Agent 和 OpenCode 的对比 |
+| [Codex](projects/codex/README.md) | 项目全局架构、Runtime 执行链、扩展与安全边界 |
 | [Google ADK](projects/adk-python/README.md) | 整体架构、代码执行、Runner、Session 存储 |
 | [mini-SWE-agent](projects/mini-swe-agent/README.md) | SWE-Bench 处理流程、用例与字段分析 |
 | [Pi](projects/pi/README.md) | Agent Runtime 分析 |

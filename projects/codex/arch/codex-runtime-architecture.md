@@ -1,12 +1,13 @@
 # Codex Runtime 架构
 
+> 范围说明：本文聚焦 Session、Submission 与 Turn Loop，基于 commit `bdd3118c71a29f26b9df3a47f91efea38a0d58bd`。产品入口、协议、扩展、安全和持久化的全局关系见 [Codex 项目全局架构](codex-global-architecture.md)。
+
 > 本文档描述 Codex CLI（`codex-rs`）的运行时（Runtime）架构：从用户输入进入系统，到模型采样、工具执行、事件流回前端的完整链路。
 > 结构上对标通用 Agent Runtime 模型（User → Runner/Event Loop → Execution Logic → Services → Storage）。
 
 ## 1. 总览：Codex Runtime 全景图
 
 - [当前版：High-level Runtime 架构](./codex-runtime-architecture.excalidraw)
-- [上一版：极简 High-level 视图](./codex-runtime-architecture-high-level-minimal.excalidraw)
 - [精简前详细版](./codex-runtime-architecture-before-simplification.excalidraw)
 - [本次修改前版本](./codex-runtime-architecture-pre-revision.excalidraw)
 - [更早备份版本](./codex-runtime-architecture-bk.excalidraw)
