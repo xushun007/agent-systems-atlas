@@ -56,6 +56,8 @@ Codex 有两类重要协议：
 
 详细执行链见 [Codex Runtime 架构](codex-runtime-architecture.md)。
 
+工具从装配、模型暴露到审批、沙箱执行和结果回写的完整机制，见 [Codex 工具系统](../mechanisms/tool-system.md)。
+
 ## 4. 扩展与服务平面
 
 扩展能力通过明确的注册、发现或协议边界进入 Core：

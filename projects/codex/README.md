@@ -9,5 +9,9 @@
 - [Codex 项目全局架构](arch/codex-global-architecture.md)
 - [Codex 分层架构](arch/codex-layered-architecture.md)
 - [Codex Runtime 架构](arch/codex-runtime-architecture.md)
+- [工具系统：从暴露到安全执行再到上下文回写](mechanisms/tool-system.md)
+- [符号级源码证据索引](source-map.md)
 
 全局架构关注主要组件之间的关系；分层架构强调职责和依赖方向；Runtime 架构进一步展开 Session、Submission 和 Turn Loop 的执行机制。
+
+机制分析进一步追踪源码调用链。当前已完成工具系统，覆盖工具装配与暴露、并发分发、Hook、审批、ExecPolicy、Sandbox 及结果回写。
