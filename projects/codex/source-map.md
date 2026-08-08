@@ -82,6 +82,29 @@
 | 正常、错误和取消由同一完成边界发出终态 | `on_task_finished()` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | terminal event tests |
 | Task 清空后触发 thread idle 并检查 mailbox 唤醒 | `emit_thread_idle_lifecycle_if_idle()`、`maybe_start_turn_for_pending_work()` | [`core/src/tasks/lifecycle.rs`](../../../codex/codex-rs/core/src/tasks/lifecycle.rs)、[`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | mailbox/idle tests |
 
+## Rollout、Resume 与 Fork
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| RolloutItem 同时承载模型项、上下文元数据和事件 | `RolloutItem`、`RolloutLine` | [`protocol/src/protocol.rs`](../../../codex/codex-rs/protocol/src/protocol.rs) | protocol/rollout tests |
+| Session 通过 LiveThread 隔离具体持久化实现 | `persist_rollout_items()`、`flush_rollout()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| Recorder 用后台 command queue 串行写 JSONL | `RolloutRecorder`、`RolloutCmd`、`rollout_writer()` | [`rollout/src/recorder.rs`](../../../codex/codex-rs/rollout/src/recorder.rs) | `rollout/src/recorder_tests.rs` |
+| 新线程可延迟到首次 persist/flush 才物化文件 | `deferred_log_file_info`、`ensure_writer_open()` | [`rollout/src/recorder.rs`](../../../codex/codex-rs/rollout/src/recorder.rs) | recorder materialization tests |
+| 写失败保留未写后缀并重开文件重试 | `write_pending_with_recovery()`、`write_pending_items_once()` | [`rollout/src/recorder.rs`](../../../codex/codex-rs/rollout/src/recorder.rs) | recorder write-error tests |
+| Flush 等待此前 command 写出并刷新文件 | `RolloutRecorder::flush()` | [`rollout/src/recorder.rs`](../../../codex/codex-rs/rollout/src/recorder.rs) | recorder flush tests |
+| 读取跳过坏行并以首个 SessionMeta 确定 thread ID | `load_rollout_items()`、`get_rollout_history()` | [`rollout/src/recorder.rs`](../../../codex/codex-rs/rollout/src/recorder.rs) | recorder resume tests |
+| InitialHistory 区分 New/Cleared/Resumed/Forked | `InitialHistory`、`ResumedHistory` | [`protocol/src/protocol.rs`](../../../codex/codex-rs/protocol/src/protocol.rs) | session resume/fork tests |
+| 恢复反向寻找最新有效 checkpoint 与 metadata | `reconstruct_history_from_rollout()` | [`core/src/session/rollout_reconstruction.rs`](../../../codex/codex-rs/core/src/session/rollout_reconstruction.rs) | `rollout_reconstruction_tests.rs` |
+| Compacted replacement history 成为重建基座 | `CompactedItem::replacement_history` | [`protocol/src/protocol.rs`](../../../codex/codex-rs/protocol/src/protocol.rs)、[`core/src/session/rollout_reconstruction.rs`](../../../codex/codex-rs/core/src/session/rollout_reconstruction.rs) | compaction reconstruction tests |
+| Rollback 追加事实并在 replay 时删除逻辑 Turn | `ThreadRolledBack`、`drop_last_n_user_turns()` | [`core/src/session/rollout_reconstruction.rs`](../../../codex/codex-rs/core/src/session/rollout_reconstruction.rs)、[`core/src/thread_rollout_truncation.rs`](../../../codex/codex-rs/core/src/thread_rollout_truncation.rs) | rollback reconstruction tests |
+| Session 一次安装 History、基线、窗口和 previous settings | `record_initial_history()`、`apply_rollout_reconstruction()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | initial history tests |
+| Fork 前 materialize/flush source，防止遗漏排队尾部 | `spawn_subagent()` | [`core/src/thread_manager.rs`](../../../codex/codex-rs/core/src/thread_manager.rs) | agent control fork-flush tests |
+| ForkSnapshot 区分截断前缀和合成中断边界 | `ForkSnapshot`、`fork_history_from_snapshot()` | [`core/src/thread_manager.rs`](../../../codex/codex-rs/core/src/thread_manager.rs) | `thread_manager_tests.rs` |
+| Mid-turn fork 可追加与真实中断一致的 marker/abort event | `snapshot_turn_state()`、`append_interrupted_boundary()` | [`core/src/thread_manager.rs`](../../../codex/codex-rs/core/src/thread_manager.rs) | fork snapshot tests |
+| Referenced fork 以 HistoryPosition 指向祖先有界前缀 | `HistoryPosition`、`ForkPersistence::Referenced` | [`protocol/src/protocol.rs`](../../../codex/codex-rs/protocol/src/protocol.rs)、[`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs)、[`core/src/thread_manager.rs`](../../../codex/codex-rs/core/src/thread_manager.rs) | paginated fork tests |
+| RolloutLineage 递归组合祖先物理区间并检测环 | `RolloutLineage`、`resolve_rollout_lineage()` | [`thread-store/src/local/rollout_lineage.rs`](../../../codex/codex-rs/thread-store/src/local/rollout_lineage.rs) | `rollout_lineage_tests.rs` |
+| prepare_fork 持久化 source、选择边界并加载模型上下文 | `paginated_fork::prepare()` | [`thread-store/src/local/paginated_fork.rs`](../../../codex/codex-rs/thread-store/src/local/paginated_fork.rs) | thread history materialization tests |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
