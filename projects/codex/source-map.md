@@ -30,6 +30,33 @@
 | Apply Patch 按目标文件缓存审批，并共享 Orchestrator | `ApplyPatchRuntime::approval_keys()`、`execute_verified_patch()` | [`core/src/tools/runtimes/apply_patch.rs`](../../../codex/codex-rs/core/src/tools/runtimes/apply_patch.rs)、[`core/src/tools/handlers/apply_patch.rs`](../../../codex/codex-rs/core/src/tools/handlers/apply_patch.rs) | `handlers/apply_patch_tests.rs` |
 | 工具输出统一转换为 Responses 输入项 | `ToolOutput::to_response_item()`、`AnyToolResult::into_response()` | [`tools/src/tool_output.rs`](../../../codex/codex-rs/tools/src/tool_output.rs)、[`core/src/tools/registry.rs`](../../../codex/codex-rs/core/src/tools/registry.rs) | `tools/context_tests.rs` |
 
+## 上下文生命周期
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| StepContext 固定一次采样使用的模型、环境、能力、工具与指令 | `StepContext`、`capture_step_context()` | [`core/src/session/step_context.rs`](../../../codex/codex-rs/core/src/session/step_context.rs)、[`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| World State 由稳定 ID 的 section 组成并支持 merge patch | `WorldState`、`WorldStateSection`、`render_diff()` | [`core/src/context/world_state/mod.rs`](../../../codex/codex-rs/core/src/context/world_state/mod.rs) | 模块内 tests |
+| 每个 Step 汇总模型、AGENTS、权限、环境与扩展状态 | `build_world_state_for_step()` | [`core/src/session/world_state.rs`](../../../codex/codex-rs/core/src/session/world_state.rs) | `session/tests.rs` |
+| 初始上下文聚合 fragments、完整 World State 与扩展贡献 | `build_initial_context_with_world_state()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| 无基线时完整注入，有基线时只写入状态差异 | `record_context_updates_and_set_reference_context_item()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `record_context_updates_*` tests |
+| Sampling steps 之间继续刷新 World State diff | `record_step_world_state_if_changed()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| ContextManager oldest-first 保存 API 历史并截断工具输出 | `ContextManager::record_items()` | [`core/src/context_manager/history.rs`](../../../codex/codex-rs/core/src/context_manager/history.rs) | 模块内 tests |
+| 发请求前修复 call/output 配对并清理不支持模态 | `ContextManager::for_prompt()` | [`core/src/context_manager/history.rs`](../../../codex/codex-rs/core/src/context_manager/history.rs) | 模块内 tests |
+| Prompt 独立组合 input、基础指令和本 Step 工具 Specs | `build_prompt()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | `session/tests.rs` |
+| 模型与工具结果同时追加到 History 和 Rollout | `record_conversation_items()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| Token 总量以服务端统计为锚点并估算本地新增项 | `ContextManager::get_total_token_usage()` | [`core/src/context_manager/history.rs`](../../../codex/codex-rs/core/src/context_manager/history.rs) | 模块内 token tests |
+| 自动压缩预算同时受 compact limit 与模型硬窗口约束 | `context_window_status()` | [`core/src/session/context_window.rs`](../../../codex/codex-rs/core/src/session/context_window.rs) | `session/tests.rs` |
+| Window 保存 ID、prefill baseline 与一次性提醒状态 | `AutoCompactWindow` | [`core/src/state/auto_compact_window.rs`](../../../codex/codex-rs/core/src/state/auto_compact_window.rs) | `session/tests.rs` |
+| Turn 前处理 token 上限、模型不兼容和窗口下调 | `run_pre_sampling_compact()`、`maybe_run_previous_model_inline_compact()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | `session/tests.rs` |
+| Mid-turn follow-up 在压缩后先 continuation 再接收 steer | `run_auto_compact()`、`InitialContextInjection::BeforeLastUserMessage` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs)、[`core/src/compact.rs`](../../../codex/codex-rs/core/src/compact.rs) | `compact_tests.rs` |
+| Local compaction 保留最近真实用户消息并追加 summary | `run_compact_task_inner()`、`collect_user_messages()` | [`core/src/compact.rs`](../../../codex/codex-rs/core/src/compact.rs) | `compact_tests.rs` |
+| Remote compaction 调用服务端并过滤非规范历史 | `run_remote_compact_task_inner()` | [`core/src/compact_remote.rs`](../../../codex/codex-rs/core/src/compact_remote.rs) | 模块内 tests |
+| Remote v2 按预算保留消息并追加 Compaction item | `build_v2_compacted_history()`、`RETAINED_MESSAGE_TOKEN_BUDGET` | [`core/src/compact_remote_v2.rs`](../../../codex/codex-rs/core/src/compact_remote_v2.rs) | 模块内 tests |
+| 所有压缩路径在同一边界替换历史、推进窗口并写 checkpoint | `replace_compacted_history()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| 新建上下文只保留规范初始上下文，不保留摘要 | `start_new_context_window()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `start_new_context_window_*` tests |
+| Rollout 以 Compacted replacement history 恢复内存态 | `reconstruct_history_from_rollout()` | [`core/src/session/rollout_reconstruction.rs`](../../../codex/codex-rs/core/src/session/rollout_reconstruction.rs) | 模块内 reconstruction tests |
+| ModelClientSession 仅在 turn 内复用增量请求和 sticky routing | `ModelClientSession`、`prepare_websocket_request()` | [`core/src/client.rs`](../../../codex/codex-rs/core/src/client.rs) | `client.rs` 内 tests |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
