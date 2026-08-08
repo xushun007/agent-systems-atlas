@@ -105,6 +105,31 @@
 | RolloutLineage 递归组合祖先物理区间并检测环 | `RolloutLineage`、`resolve_rollout_lineage()` | [`thread-store/src/local/rollout_lineage.rs`](../../../codex/codex-rs/thread-store/src/local/rollout_lineage.rs) | `rollout_lineage_tests.rs` |
 | prepare_fork 持久化 source、选择边界并加载模型上下文 | `paginated_fork::prepare()` | [`thread-store/src/local/paginated_fork.rs`](../../../codex/codex-rs/thread-store/src/local/paginated_fork.rs) | thread history materialization tests |
 
+## Guardian 自动审批审查
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| 只有 OnRequest/Granular 与 AutoReview 组合路由到 Guardian | `routes_approval_policy_to_guardian()` | [`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `guardian/tests.rs` |
+| PermissionRequest Hook 优先于 Guardian/User reviewer | `resolve_tool_apporval()` | [`core/src/tools/approvals.rs`](../../../codex/codex-rs/core/src/tools/approvals.rs) | `tools/approvals_tests.rs` |
+| Guardian request 覆盖命令、Patch、网络、MCP 和权限动作 | `GuardianApprovalRequest` | [`core/src/guardian/approval_request.rs`](../../../codex/codex-rs/core/src/guardian/approval_request.rs) | `guardian/tests.rs` |
+| 动作 JSON 稳定排序并递归限制单字符串长度 | `guardian_approval_request_to_json()`、`truncate_guardian_action_value()` | [`core/src/guardian/approval_request.rs`](../../../codex/codex-rs/core/src/guardian/approval_request.rs) | `guardian/tests.rs` |
+| Transcript 分离消息/工具预算并保留首条和最新用户证据 | `select_guardian_transcript_entries()` | [`core/src/guardian/prompt.rs`](../../../codex/codex-rs/core/src/guardian/prompt.rs) | `guardian/tests.rs` |
+| 普通 developer/context fragment 不作为用户授权证据 | `collect_guardian_transcript_entries()` | [`core/src/guardian/prompt.rs`](../../../codex/codex-rs/core/src/guardian/prompt.rs) | `guardian/tests.rs` |
+| History version 与 cursor 决定 Full 或 Delta prompt | `GuardianTranscriptCursor`、`GuardianPromptMode` | [`core/src/guardian/prompt.rs`](../../../codex/codex-rs/core/src/guardian/prompt.rs) | `guardian/tests.rs` |
+| Reviewer 强制只读、Never approval 并清空 MCP/扩展能力 | `build_guardian_review_session_config()` | [`core/src/guardian/review_session.rs`](../../../codex/codex-rs/core/src/guardian/review_session.rs) | `review_session.rs` 模块 tests |
+| Guardian policy 与 JSON Schema 共同约束输出 | `guardian_policy_prompt_with_config_and_template()`、`guardian_output_schema()` | [`core/src/guardian/prompt.rs`](../../../codex/codex-rs/core/src/guardian/prompt.rs)、[`core/src/guardian/policy.md`](../../../codex/codex-rs/core/src/guardian/policy.md) | `guardian/tests.rs` |
+| Guardian 使用独立 Codex thread 和稳定 parent-scoped cache key | `spawn_guardian_review_session()`、`prompt_cache_key_override_for_review_session()` | [`core/src/guardian/review_session.rs`](../../../codex/codex-rs/core/src/guardian/review_session.rs) | `review_session.rs` 模块 tests |
+| 空闲 trunk 复用，忙碌 trunk 从已提交 rollout 建临时 fork | `GuardianReviewSessionManager::run_review()`、`run_ephemeral_review()` | [`core/src/guardian/review_session.rs`](../../../codex/codex-rs/core/src/guardian/review_session.rs) | `guardian/tests.rs`、`review_session.rs` 模块 tests |
+| 复用键变化会替换 trunk，避免跨不兼容配置共享 | `GuardianReviewSessionReuseKey` | [`core/src/guardian/review_session.rs`](../../../codex/codex-rs/core/src/guardian/review_session.rs) | `review_session.rs` 模块 tests |
+| 审查共享 90 秒 deadline，最多三次有限重试 | `run_guardian_review_session_with_retry()` | [`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `review_tests`、`guardian/tests.rs` |
+| 仅临时连接/服务异常和 JSON 解析失败可重试 | `should_retry_guardian_review()` | [`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `guardian_review_retry_only_*` |
+| Allow/Deny/Timeout/Cancel/Failure 都映射到标准 ReviewDecision | `run_guardian_review()` | [`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `guardian/tests.rs` |
+| 工具层把 Guardian 超时、取消和拒绝统一变成 Rejected | `ApprovalResolution::into_tool_result()` | [`core/src/tools/approvals.rs`](../../../codex/codex-rs/core/src/tools/approvals.rs) | `tools/approvals_tests.rs` |
+| 只有显式 deny 计入 3 连续或最近 50 中 10 次的熔断 | `GuardianRejectionCircuitBreaker`、`record_guardian_denial()` | [`core/src/guardian/mod.rs`](../../../codex/codex-rs/core/src/guardian/mod.rs)、[`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `guardian/tests.rs` |
+| 熔断通过异步 interrupt 终止活跃 Turn 并补齐 idle lifecycle | `record_guardian_denial()` | [`core/src/guardian/review.rs`](../../../codex/codex-rs/core/src/guardian/review.rs) | `guardian/tests.rs`、`session/tests.rs` |
+| 客户端覆写只注入 exact-action developer 授权，不直接执行 | `approve_guardian_denied_action()` | [`core/src/session/handlers.rs`](../../../codex/codex-rs/core/src/session/handlers.rs) | `session/tests.rs` |
+| MCP elicitation 先做模式/schema 适配再交给 Guardian | `review_guardian_mcp_elicitation()`、`guardian_elicitation_review_request()` | [`core/src/session/mcp.rs`](../../../codex/codex-rs/core/src/session/mcp.rs) | `session/mcp.rs` 模块 tests |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
