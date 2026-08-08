@@ -57,6 +57,31 @@
 | Rollout 以 Compacted replacement history 恢复内存态 | `reconstruct_history_from_rollout()` | [`core/src/session/rollout_reconstruction.rs`](../../../codex/codex-rs/core/src/session/rollout_reconstruction.rs) | 模块内 reconstruction tests |
 | ModelClientSession 仅在 turn 内复用增量请求和 sticky routing | `ModelClientSession`、`prepare_websocket_request()` | [`core/src/client.rs`](../../../codex/codex-rs/core/src/client.rs) | `client.rs` 内 tests |
 
+## Turn 控制循环
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| Submission 携带操作、相关 ID、trace 与父 Turn | `Submission`、`Op` | [`protocol/src/protocol.rs`](../../../codex/codex-rs/protocol/src/protocol.rs) | `session/tests.rs` |
+| 单消费者串行分发线程操作 | `submission_loop()` | [`core/src/session/handlers.rs`](../../../codex/codex-rs/core/src/session/handlers.rs) | `session/tests.rs` |
+| 用户输入优先 steer，空闲时才启动 RegularTask | `user_input_or_turn_inner()` | [`core/src/session/handlers.rs`](../../../codex/codex-rs/core/src/session/handlers.rs) | steer 相关 session tests |
+| Steer 校验活动 Task 类型和 expected turn ID | `Session::steer_input()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `steer_input_*` tests |
+| ActiveTurn 统一持有 Task 与可变 TurnState | `ActiveTurn`、`RunningTask`、`TurnState` | [`core/src/state/turn.rs`](../../../codex/codex-rs/core/src/state/turn.rs) | `session/tests.rs` |
+| 新前台 Task 会以 Replaced 原因终止旧 Task | `Session::spawn_task()` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | task lifecycle tests |
+| SessionTask 抽象 Regular、Review、Compact 的统一生命周期 | `SessionTask`、`AnySessionTask` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | `tasks/mod_tests.rs` |
+| start_task 安装取消、后台 handle、TurnContext 与 lifecycle | `Session::start_task()` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | `spawn_task_*` tests |
+| RegularTask 可在同一 Turn 内因 pending input 再次 run_turn | `RegularTask::run()` | [`core/src/tasks/regular.rs`](../../../codex/codex-rs/core/src/tasks/regular.rs) | `session/tests.rs` |
+| run_turn 在多个 Step/Sampling 之间合并 follow-up 状态 | `run_turn()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | `turn_tests.rs` |
+| Sampling 对 retryable stream error 重建 Prompt 并重试 | `run_sampling_request()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | retry 相关 tests |
+| Stream 输出、工具 Future、token 与 diff 在请求内收束 | `try_run_sampling_request()`、`drain_in_flight()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | `turn_tests.rs` |
+| pending input 只在明确边界 drain | `can_drain_pending_input`、`InputQueue::get_pending_input()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs)、[`core/src/session/input_queue.rs`](../../../codex/codex-rs/core/src/session/input_queue.rs) | input queue tests |
+| Mailbox delivery 在 CurrentTurn/NextTurn 间切换 | `MailboxDeliveryPhase` | [`core/src/state/turn.rs`](../../../codex/codex-rs/core/src/state/turn.rs) | mailbox session tests |
+| 输入 Hook 可拒绝项目并追加上下文 | `run_hooks_and_record_inputs()` | [`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | Hook 相关 tests |
+| Stop Hook 可注入 continuation 并重开 sampling | `run_turn_stop_hooks()` | [`core/src/hook_runtime.rs`](../../../codex/codex-rs/core/src/hook_runtime.rs)、[`core/src/session/turn.rs`](../../../codex/codex-rs/core/src/session/turn.rs) | Hook 相关 tests |
+| Interrupt 先 cancel，短暂等待后强制 abort | `interrupt_task()`、`handle_task_abort()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs)、[`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | interrupt 相关 session tests |
+| 中断 marker 在 TurnAborted 前持久化 | `interrupted_turn_history_marker()` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | terminal flush tests |
+| 正常、错误和取消由同一完成边界发出终态 | `on_task_finished()` | [`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | terminal event tests |
+| Task 清空后触发 thread idle 并检查 mailbox 唤醒 | `emit_thread_idle_lifecycle_if_idle()`、`maybe_start_turn_for_pending_work()` | [`core/src/tasks/lifecycle.rs`](../../../codex/codex-rs/core/src/tasks/lifecycle.rs)、[`core/src/tasks/mod.rs`](../../../codex/codex-rs/core/src/tasks/mod.rs) | mailbox/idle tests |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
