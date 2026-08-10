@@ -130,6 +130,26 @@
 | 客户端覆写只注入 exact-action developer 授权，不直接执行 | `approve_guardian_denied_action()` | [`core/src/session/handlers.rs`](../../../codex/codex-rs/core/src/session/handlers.rs) | `session/tests.rs` |
 | MCP elicitation 先做模式/schema 适配再交给 Guardian | `review_guardian_mcp_elicitation()`、`guardian_elicitation_review_request()` | [`core/src/session/mcp.rs`](../../../codex/codex-rs/core/src/session/mcp.rs) | `session/mcp.rs` 模块 tests |
 
+## Multi-Agent V2
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| 根线程树共享 AgentControl，但 registry 不跨根会话 | `AgentControl` | [`core/src/agent/control.rs`](../../../codex/codex-rs/core/src/agent/control.rs) | `agent/control_tests.rs` |
+| canonical AgentPath 同时承担树身份和寻址 | `AgentRegistry`、`resolve_agent_reference()` | [`core/src/agent/registry.rs`](../../../codex/codex-rs/core/src/agent/registry.rs)、[`core/src/agent/control.rs`](../../../codex/codex-rs/core/src/agent/control.rs) | `agent/registry_tests.rs` |
+| Spawn 预留容量/path 后创建独立 Codex thread | `spawn_agent_internal()` | [`core/src/agent/control/spawn.rs`](../../../codex/codex-rs/core/src/agent/control/spawn.rs) | `agent/control/spawn_tests.rs` |
+| Child config 刷新当前 Turn 的模型、cwd、审批和权限 | `build_agent_spawn_config()`、`apply_spawn_agent_runtime_overrides()` | [`core/src/tools/handlers/multi_agents_common.rs`](../../../codex/codex-rs/core/src/tools/handlers/multi_agents_common.rs) | `multi_agents_tests.rs` |
+| fork_turns 支持 none/all/LastNTurns | `SpawnAgentArgs::fork_mode()`、`spawn_forked_thread()` | [`core/src/tools/handlers/multi_agents_v2/spawn.rs`](../../../codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs)、[`core/src/agent/control/spawn.rs`](../../../codex/codex-rs/core/src/agent/control/spawn.rs) | `multi_agents_tests.rs` |
+| Fork 过滤 reasoning/tool/communication 并替换协作指令 | `keep_forked_rollout_item()`、`retain_forked_item` | [`core/src/agent/control/spawn.rs`](../../../codex/codex-rs/core/src/agent/control/spawn.rs) | `agent/control/spawn_tests.rs` |
+| send_message 只排队，followup_task 会触发新 Turn | `MessageDeliveryMode`、`handle_message_string_tool()` | [`core/src/tools/handlers/multi_agents_v2/message_tool.rs`](../../../codex/codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs) | `multi_agents_v2` 模块 tests |
+| V2 子 Turn 终态直接向父 mailbox 回送 completion envelope | `maybe_notify_parent_of_terminal_turn()` | [`core/src/session/mod.rs`](../../../codex/codex-rs/core/src/session/mod.rs) | `session/tests.rs` |
+| wait_agent 等待 mailbox/steer activity，而非指定 child | `wait_for_activity()` | [`core/src/tools/handlers/multi_agents_v2/wait.rs`](../../../codex/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs) | `multi_agents_v2/wait.rs` tests |
+| Interrupt 拒绝 root/self，并对已消失 child 幂等 | `handle_interrupt_agent()` | [`core/src/tools/handlers/multi_agents_v2/interrupt_agent.rs`](../../../codex/codex-rs/core/src/tools/handlers/multi_agents_v2/interrupt_agent.rs) | `multi_agents_v2` 模块 tests |
+| Execution limiter 只统计启动 Turn 的 V2 subagent | `AgentExecutionLimiter`、`execution_guard()` | [`core/src/agent/control/execution.rs`](../../../codex/codex-rs/core/src/agent/control/execution.rs) | `agent/control/execution_tests.rs` |
+| Residency 满时 LRU 卸载终态、空 mailbox 的 Session | `V2Residency::reserve_slot()`、`is_unloadable()` | [`core/src/agent/control/residency.rs`](../../../codex/codex-rs/core/src/agent/control/residency.rs) | `agent/control/residency_tests.rs` |
+| 已卸载 V2 child 可从 Rollout 按原 ThreadId lazy reload | `ensure_v2_agent_loaded()` | [`core/src/agent/control/spawn.rs`](../../../codex/codex-rs/core/src/agent/control/spawn.rs) | `agent/control/spawn_tests.rs` |
+| 非 ephemeral parent-child edge 写入 Agent Graph Store | `persist_thread_spawn_edge_for_source()` | [`core/src/agent/control.rs`](../../../codex/codex-rs/core/src/agent/control.rs) | Agent graph/store tests |
+| Multi-Agent mode 由 V2、session source、reasoning/hint 决定 | `effective_multi_agent_mode()` | [`core/src/session/multi_agents.rs`](../../../codex/codex-rs/core/src/session/multi_agents.rs) | `session/multi_agents.rs` tests |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
