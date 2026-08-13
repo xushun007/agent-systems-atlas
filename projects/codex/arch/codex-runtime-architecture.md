@@ -1,94 +1,36 @@
 # Codex Runtime 架构
 
-> 范围说明：本文聚焦 Session、Submission 与 Turn Loop，基于 commit `bdd3118c71a29f26b9df3a47f91efea38a0d58bd`。产品入口、协议、扩展、安全和持久化的全局关系见 [Codex 项目全局架构](codex-global-architecture.md)。
+> 范围说明：本文聚焦 Session、Submission 与 Turn Loop，基于 commit `7750465934d97dd3cbcb3b1655d2f622744010d3`。产品入口、协议、扩展、安全和持久化的全局关系见 [Codex 项目全局架构](codex-global-architecture.md)。
 
 > 本文档描述 Codex CLI（`codex-rs`）的运行时（Runtime）架构：从用户输入进入系统，到模型采样、工具执行、事件流回前端的完整链路。
 > 结构上对标通用 Agent Runtime 模型（User → Runner/Event Loop → Execution Logic → Services → Storage）。
 
-## 1. 总览：Codex Runtime 全景图
+## 1. 总览：High-level Runtime 设计
 
 - [当前版：High-level Runtime 架构](./codex-runtime-architecture.excalidraw)
 - [精简前详细版](./codex-runtime-architecture-before-simplification.excalidraw)
 - [本次修改前版本](./codex-runtime-architecture-pre-revision.excalidraw)
 - [更早备份版本](./codex-runtime-architecture-bk.excalidraw)
 
-```mermaid
-flowchart LR
-    subgraph User["用户"]
-        U(("👤 User"))
-    end
+这张图刻意隐藏线程管理、配置装配和具体 Rust 类型，强调五个稳定的设计关系：
 
-    subgraph Frontends["前端层 (Frontends)"]
-        TUI["TUI<br/>tui/src/lib.rs"]
-        EXEC["Exec (非交互)<br/>exec/src/lib.rs"]
-        MCPS["MCP Server<br/>mcp-server/src/lib.rs"]
-        SDK["SDK (TS / Python)"]
-    end
+1. TUI、Exec 与 SDK 通过 `app-server` 进入 Core，运行事件再以通知流返回前端。
+2. `Session Runtime` 是一次持续对话的执行边界，内部以 Submission、Task、Turn 三层组织工作。
+3. Turn Loop 在模型采样与工具执行之间迭代，直到不再需要后续采样。
+4. Runtime Services 为 Session 提供认证、Skills、Plugins、MCP、Hooks 与 Telemetry 等横切能力。
+5. Storage 同时保存 Rollout Log 和 State DB；Session 通过同一持久化边界记录运行过程并恢复上下文。
 
-    subgraph AppServer["app-server (JSON-RPC)"]
-        AS["AppServer<br/>app-server/src/lib.rs"]
-    end
+概念主链：`Frontends → app-server → Submission Processing → SessionTask → Turn Loop`。模型与工具形成 Turn 内部的双向执行回路，Storage 则形成 Session 外部的 `record / restore` 回路。
 
-    subgraph Runtime["Codex Core Runtime (codex-core)"]
-        TM["ThreadManager<br/>core/src/thread_manager.rs"]
-        CT["CodexThread<br/>core/src/codex_thread.rs"]
-
-        subgraph SessionBox["Session — 相当于 Runner"]
-            SUBLOOP["submission_loop<br/>(Event Processor)<br/>session/handlers.rs"]
-            TASK["Task 循环<br/>tasks/mod.rs"]
-            TURN["Turn 循环 (ReAct)<br/>session/turn.rs"]
-        end
-
-        subgraph ExecLogic["Execution Logic"]
-            MC["ModelClient<br/>core/src/client.rs"]
-            TR["ToolRouter<br/>tools/router.rs"]
-            HD["Tool Handlers<br/>tools/handlers/*"]
-        end
-
-        subgraph Services["Services"]
-            SS["SessionServices<br/>state/service.rs<br/>(Sandbox / Approval / MCP /<br/>Hooks / Otel / Auth ...)"]
-        end
-    end
-
-    subgraph Storage["Storage"]
-        RO["RolloutRecorder<br/>codex-rollout"]
-        DB[("SQLite StateDb<br/>codex-state / thread-store")]
-    end
-
-    CFG["Configuration<br/>config.toml / profiles / overrides"]
-
-    LLM["🌐 Model Provider<br/>(Responses API, SSE/WebSocket)"]
-
-    U -->|"1 输入 prompt"| TUI & EXEC
-    TUI & EXEC & SDK -->|JSON-RPC| AS
-    MCPS --> TM
-    AS --> TM
-    TM -->|spawn_thread / send_op| CT
-    CT -->|"Submission {Op}"| SUBLOOP
-    SUBLOOP -->|spawn_task| TASK
-    TASK -->|run_turn| TURN
-    TURN <-->|"2 Event Loop<br/>(采样 ↔ 工具)"| ExecLogic
-    MC <-->|stream| LLM
-    TR --> HD
-    SessionBox <-.-> Services
-    SessionBox -->|runtime recording| RO
-    RO -->|resume / fork history| SessionBox
-    CFG -.->|load / resolve| SessionBox
-    SUBLOOP -->|"3 Stream&lt;Event&gt;"| AS
-    AS -->|Notification| TUI & EXEC
-```
-
-要点对应关系（与通用 Agent Runtime 模型对照）：
-
-| 通用模型 | Codex 对应实现 | 位置 |
+| 架构职责 | High-level 组件 | 关键关系 |
 | --- | --- | --- |
-| Runner / Event Processor | `Session` + `submission_loop` | `core/src/session/session.rs`、`core/src/session/handlers.rs` |
-| Event Loop（Ask/Yield） | Task→Turn→Sampling 三层循环 | `core/src/tasks/`、`core/src/session/turn.rs` |
-| Execution Logic | `ModelClient` + `ToolRouter` + Handlers | `core/src/client.rs`、`core/src/tools/` |
-| Services | `SessionServices`（Sandbox/Approval/MCP/Hooks/Otel…） | `core/src/state/service.rs` |
-| Storage | Rollout + SQLite StateDb | `codex-rollout`、`codex-state` |
-| Configuration | config.toml + profiles + overrides | `codex-config`、`core/src/config` |
-| Stream\<Event\> | `Event`/`EventMsg` 经 `SessionIo.rx_event` 流回前端 | `codex-protocol` |
+| 接入与事件回传 | Frontends + `app-server` | prompt / notification |
+| 会话执行边界 | Session Runtime | 串行接收 Submission，管理活动 Task |
+| Agent 循环 | Turn Loop | Reason → Act → Observe → follow-up |
+| 模型访问 | Model Gateway | Responses API 与流式响应 |
+| 工具执行 | Tool Execution | Routing → Policy/Approval → Sandbox → Handler |
+| 横切能力 | Runtime Services | Auth、Skills、Plugins、MCP、Hooks、Telemetry |
+| 持久化 | Rollout Log + State DB | record / restore |
 
 ## 2. 分层职责
 
