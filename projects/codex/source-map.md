@@ -150,6 +150,28 @@
 | 非 ephemeral parent-child edge 写入 Agent Graph Store | `persist_thread_spawn_edge_for_source()` | [`core/src/agent/control.rs`](../../../codex/codex-rs/core/src/agent/control.rs) | Agent graph/store tests |
 | Multi-Agent mode 由 V2、session source、reasoning/hint 决定 | `effective_multi_agent_mode()` | [`core/src/session/multi_agents.rs`](../../../codex/codex-rs/core/src/session/multi_agents.rs) | `session/multi_agents.rs` tests |
 
+## 权限控制面
+
+| 结论 | 关键符号 | 源码位置 | 测试证据 |
+| --- | --- | --- | --- |
+| 普通配置层按低到高优先级递归覆盖 | `ConfigLayerSource::precedence()`、`ConfigLayerStack::effective_config()` | [`config/src/config_layer_source.rs`](../../../codex/codex-rs/config/src/config_layer_source.rs)、[`config/src/state.rs`](../../../codex/codex-rs/config/src/state.rs) | `state_tests.rs`、`merge_tests.rs` |
+| Requirements 与普通 effective config 分开保存和组合 | `ConfigLayerStack`、`compose_requirements()` | [`config/src/state.rs`](../../../codex/codex-rs/config/src/state.rs)、[`config/src/requirements_layers/stack.rs`](../../../codex/codex-rs/config/src/requirements_layers/stack.rs) | `requirements_layers/stack_tests.rs` |
+| managed deny-read 跨层去重取并集并保留复合来源 | `DenyReadMergeState`、`merge_deny_read()` | [`config/src/requirements_layers/permissions.rs`](../../../codex/codex-rs/config/src/requirements_layers/permissions.rs) | `requirements_layers/stack_tests.rs` |
+| 约束和值绑定，运行时更新会再次 normalize/validate | `Constrained<T>::set()`、`add_validator()` | [`config/src/constraint.rs`](../../../codex/codex-rs/config/src/constraint.rs) | `constraint.rs` 模块 tests |
+| exact managed requirements 覆盖配置并产生带来源警告 | `ConfigRequirements::apply_to_config()` | [`core/src/config/requirements.rs`](../../../codex/codex-rs/core/src/config/requirements.rs) | `config_tests.rs` |
+| Profile catalog 综合 ID allowlist、sandbox mode 与 deny-read 判定可选项 | `permission_profile_catalog()`、`PermissionProfileCatalogEntry::allowed` | [`core/src/config/permission_profile_catalog.rs`](../../../codex/codex-rs/core/src/config/permission_profile_catalog.rs) | `permissions_tests.rs` |
+| 不允许的用户 Profile 回退到 requirements 默认项 | `resolve_effective_permission_selection()`、`resolve_default_permissions()` | [`core/src/config/permissions.rs`](../../../codex/codex-rs/core/src/config/permissions.rs) | `permissions_tests.rs` |
+| named/built-in Profile 编译为文件与网络策略 | `compile_permission_profile_selection()` | [`core/src/config/resolved_permission_profile.rs`](../../../codex/codex-rs/core/src/config/resolved_permission_profile.rs) | `permissions_tests.rs` |
+| Profile concrete value、身份和 roots 原子保存 | `PermissionProfileState` | [`core/src/config/permissions.rs`](../../../codex/codex-rs/core/src/config/permissions.rs) | `permissions_tests.rs` |
+| 最终 Config 应用约束、保留 deny-read 并安装有效权限 | `Config::load_config_with_layer_stack()`、`apply_requirement_constrained_value()` | [`core/src/config/mod.rs`](../../../codex/codex-rs/core/src/config/mod.rs)、[`core/src/config/requirements.rs`](../../../codex/codex-rs/core/src/config/requirements.rs) | `config_tests.rs`、`permissions_tests.rs` |
+| 网络配置、requirements、约束与动态审批收敛为 proxy spec | `NetworkProxySpec`、`effective_config()` | [`core/src/config/network_proxy_spec.rs`](../../../codex/codex-rs/core/src/config/network_proxy_spec.rs) | `network_proxy_spec_tests.rs` |
+| Session settings 更新继续使用 approval/Profile validator | `SessionConfiguration::apply()` | [`core/src/session/session.rs`](../../../codex/codex-rs/core/src/session/session.rs) | `session/tests.rs` |
+| Profile 切换、legacy bridge 与 cwd rebind 都保留 deny-read | `set_permission_profile_projection()`、`set_legacy_sandbox_policy()` | [`core/src/session/session.rs`](../../../codex/codex-rs/core/src/session/session.rs) | `session/tests.rs` |
+| TurnContext 固定 split policy、legacy projection 与持久化表示 | `TurnContext`、`to_turn_context_item()` | [`core/src/turn_context.rs`](../../../codex/codex-rs/core/src/turn_context.rs) | `session/tests.rs` |
+| World State 向模型描述当前有效权限，但不承担 enforcement | `PermissionsWorldState`、`EnvironmentContext` | [`core/src/context/world_state/permissions.rs`](../../../codex/codex-rs/core/src/context/world_state/permissions.rs)、[`core/src/environment_context.rs`](../../../codex/codex-rs/core/src/environment_context.rs) | world-state/context tests |
+| Additional Permissions 先规范化，再与 base Profile 合并且保留 deny | `normalize_additional_permissions()`、`effective_additional_permissions()` | [`sandboxing/src/policy_transforms.rs`](../../../codex/codex-rs/sandboxing/src/policy_transforms.rs) | `policy_transforms_tests.rs` |
+| Sandbox Manager 从最终 Profile 选择平台执行器 | `SandboxManager::transform()` | [`sandboxing/src/manager.rs`](../../../codex/codex-rs/sandboxing/src/manager.rs) | `manager_tests.rs` |
+
 ## 使用方式
 
 升级分析基线时，优先按表格逐项确认：符号是否仍存在、调用者是否变化、测试是否覆盖相同不变量。若结论发生变化，应同时更新机制文档、图和 `project.yaml`。
