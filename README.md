@@ -58,7 +58,7 @@ agent-systems-atlas/
 | [Codex](projects/codex/README.md) | 项目全局架构、Runtime 执行链、工具系统与安全边界 |
 | [Google ADK](projects/adk-python/README.md) | 整体架构、代码执行、Runner、Session 存储 |
 | [mini-SWE-agent](projects/mini-swe-agent/README.md) | SWE-Bench 处理流程、用例与字段分析 |
-| [Pi](projects/pi/README.md) | Agent Runtime 分析 |
+| [Pi](projects/pi/README.md) | 整体 Runtime 架构、Session 编排、模型与工具循环、JSONL 会话树及恢复机制 |
 
 每个项目通过 `project.yaml` 记录上游仓库地址、已分析的 commit 和复查日期，避免源码更新后分析结论失去版本上下文。
 
