@@ -1,4 +1,5 @@
 name: kimi-code
 repository: https://github.com/MoonshotAI/kimi-code
-analyzed_commit: e22479a62eed9c3b78a67b313f4332c2c0ba9670
-last_reviewed: 2026-08-20
+analyzed_commit: ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd
+last_reviewed: 2026-09-13
+current_architecture_snapshot: 2026-09-13.ee2cac1

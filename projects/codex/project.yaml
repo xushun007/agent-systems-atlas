@@ -1,4 +1,5 @@
 name: codex
 repository: https://github.com/openai/codex
-analyzed_commit: 7750465934d97dd3cbcb3b1655d2f622744010d3
-last_reviewed: 2026-08-14
+analyzed_commit: ee6814bfa4889fe9b2b3dcc9cc8bdd91effa8ab8
+last_reviewed: 2026-09-12
+current_architecture_snapshot: 2026-09-12.ee6814b

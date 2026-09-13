@@ -12,7 +12,7 @@ Codex 可以按稳定职责划分为六层，但分层本身不是架构。真�
 
 - 可编辑源文件：[codex-layered-architecture.excalidraw](codex-layered-architecture.excalidraw)
 - 全局关系视图：[codex-global-architecture.excalidraw](codex-global-architecture.excalidraw)
-- Runtime 执行链：[codex-runtime-architecture.excalidraw](codex-runtime-architecture.excalidraw)
+- Runtime 执行链与版本入口：[Codex Runtime 架构](codex-runtime-architecture.md)
 
 图中箭头按关系着色：蓝/青表示入口与协议，橙色表示 Runtime 控制，红色表示模型链，绿色表示工具执行闭环，紫色表示扩展和策略，深绿色表示状态与配置，灰色表示平台安全边界。双向箭头表示该接口同时承载请求与反馈。
 

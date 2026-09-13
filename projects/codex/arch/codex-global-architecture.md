@@ -17,7 +17,7 @@ Codex 不是一个单体 CLI，而是围绕 `codex-core` 组织的一组可组�
 
 - 可编辑源文件：[codex-global-architecture.excalidraw](codex-global-architecture.excalidraw)
 - 分层职责视图：[codex-layered-architecture.excalidraw](codex-layered-architecture.excalidraw)
-- Runtime 细节：[codex-runtime-architecture.excalidraw](codex-runtime-architecture.excalidraw)
+- Runtime 细节与版本入口：[Codex Runtime 架构](codex-runtime-architecture.md)
 
 图中实线表示主要请求或执行路径，紫色虚线表示扩展贡献，青色双向线表示加载与持久化。
 

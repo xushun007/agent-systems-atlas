@@ -63,6 +63,46 @@ Mermaid, ASCII diagrams, screenshots, and generated raster images are not substi
 
 If `excalidraw-diagram-generator` is unavailable, stop the diagram-generation portion of the task and report that the required skill must be installed or enabled. Do not invent the skill's interface and do not silently switch to another diagram format.
 
+## Architecture snapshots and evolution
+
+Architecture documents are research snapshots, not continuously overwritten summaries. When an upstream change materially affects component boundaries, lifecycle ownership, control flow, persistence, recovery, security, or execution semantics, create a new versioned snapshot and preserve the previous one.
+
+Use these rules for every project and architecture view:
+
+1. Name a snapshot `<view-name>-<review-date>-<short-commit>.md`, for example `agent-runtime-2026-09-12-ee6814b.md`.
+2. Give its editable diagram the same basename with the `.excalidraw` extension and store it under `projects/<project>/diagrams/`.
+3. Treat `review-date` as the date the analysis was completed, not the upstream commit date. Record both dates in document metadata.
+4. Keep versioned snapshots immutable after publication except for factual corrections that do not change the recorded architecture. Create a new snapshot for later upstream behavior.
+5. Use the unversioned `<view-name>.md` only as a stable entry page. It should identify and link the current snapshot, the evolution index, and any relevant detailed views; it must not silently become a new snapshot.
+6. Maintain `<view-name>-history.md` as the evolution index. For every review, record the upstream commit, change level, important additions/removals/responsibility moves, preserved invariants, and links to the document and diagram.
+7. Do not create a full snapshot for routine source updates. If an inspection finds no architecture-level change, add a short `none` review entry to the history index without duplicating the diagram.
+8. Before replacing an existing unversioned architecture document or diagram, first preserve it as a versioned snapshot and verify the copy matches the source.
+
+Every versioned architecture document must begin with YAML front matter containing at least:
+
+```yaml
+---
+title: Project Runtime Architecture
+snapshot_id: YYYY-MM-DD.shortsha
+reviewed_at: YYYY-MM-DD
+upstream_repository: https://example.com/owner/repository
+upstream_commit: full-git-commit-sha
+upstream_commit_date: YYYY-MM-DD
+previous_snapshot: YYYY-MM-DD.shortsha # omit for the first snapshot
+status: current # current or historical
+change_level: major # baseline, none, minor, or major
+verification:
+  source_reading: true
+  tests_read: true
+  runtime_experiment: false
+diagram: ../diagrams/matching-snapshot-name.excalidraw
+---
+```
+
+Use the templates in `templates/architecture-snapshot.md` and `templates/architecture-history.md`. The snapshot body must lead with a conclusion, define its view boundary, link important claims to fixed-commit source locations, distinguish verified behavior from interpretation, summarize changes from the previous snapshot, state preserved invariants, and retain an explicit uncertainties section.
+
+When a new current snapshot is complete, update `projects/<project>/project.yaml` with the full analyzed commit, review date, and `current_architecture_snapshot` when that field is used. Historical snapshot metadata remains the authority for older views.
+
 ## Writing conventions
 
 - Chinese is the default language for research prose unless the surrounding document uses another language.
@@ -82,6 +122,7 @@ name: project-name
 repository: https://example.com/owner/repository
 analyzed_commit: full-git-commit-sha
 last_reviewed: YYYY-MM-DD
+current_architecture_snapshot: YYYY-MM-DD.shortsha
 ```
 
 Machine-specific paths belong in `*.local.yaml`, which is ignored by Git. Do not commit absolute local source paths in portable metadata.
