@@ -1,5 +1,7 @@
 # Kimi Code 执行循环深潜解析：run-turn 与 turn-step
 
+> 分析版本：`v0.31.1`；精确源码提交：`e22479a62eed9c3b78a67b313f4332c2c0ba9670`。本文只保留 legacy v1 的历史实现分析，不代表 v0.40.0 的默认运行时。
+
 > 范围说明：本文分析的是 `packages/agent-core`（legacy v1）中的循环。`kimi web` 当前始终使用 `packages/agent-core-v2`；CLI/TUI 默认仍走 v1，只有启用 `KIMI_CODE_EXPERIMENTAL_FLAG` 才切换 v2。当前 v2 runtime 的分析与架构图见 [Agent Loop Runtime](agent-loop-runtime.md)。
 
 本文档深入剖析智能体核心循环的两个关键模块：负责 Turn 级别宏观控制的 [run-turn.ts](../../../../kimi-code/packages/agent-core/src/loop/run-turn.ts) 以及负责单步执行大模型调用与工具收尾的 [turn-step.ts](../../../../kimi-code/packages/agent-core/src/loop/turn-step.ts)。

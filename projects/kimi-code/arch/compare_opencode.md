@@ -1,5 +1,7 @@
 # 架构对比：Kimi Code 与 OpenCode
 
+> Kimi Code 分析版本：`v0.31.1`；精确源码提交：`e22479a62eed9c3b78a67b313f4332c2c0ba9670`。本文是历史机制对比，当前 v0.40.0 的 Kimi Code Runtime/Harness 见 [`research/codex-harness-evolution.md`](../research/codex-harness-evolution.md)。
+
 本文档对 Kimi Code 与 [OpenCode](../../../../opencode) 的智能体执行循环 (Agent Loop / ReAct Loop) 进行深入对比。
 
 ---

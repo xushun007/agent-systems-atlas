@@ -3,6 +3,7 @@ title: Kimi Code Agent Loop Runtime
 snapshot_id: 2026-09-13.ee2cac1
 reviewed_at: 2026-09-13
 upstream_repository: https://github.com/MoonshotAI/kimi-code
+upstream_version: v0.42.0+ (unreleased mainline)
 upstream_commit: ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd
 upstream_commit_date: 2026-09-12
 previous_snapshot: 2026-08-20.e22479a
@@ -15,7 +16,7 @@ verification:
 diagram: ../diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw
 ---
 
-# Kimi Code Agent Loop Runtime
+# Kimi Code Agent Loop Runtime（v0.42.0+ 未发布主线）
 
 > 结论：当前 Kimi Code Agent Loop 是一个 **门面包裹的两级状态机 Runtime**。`AgentPromptService` 管输入生命周期，`AgentLoopService` 管对外 admission/steer/notify 与执行投影，`MachineEngine` 驱动 Agent Machine；每个活动 Turn 又由嵌套 Turn Machine 在 `thinking → acting → draining` 间推进。旧版 `StepRequestQueue` 和 `AgentLoopContinuationService` 已不再是循环心跳。
 

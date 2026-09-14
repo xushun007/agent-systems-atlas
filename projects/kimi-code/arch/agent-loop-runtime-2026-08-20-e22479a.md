@@ -3,6 +3,7 @@ title: Kimi Code Agent Loop Runtime
 snapshot_id: 2026-08-20.e22479a
 reviewed_at: 2026-08-20
 upstream_repository: https://github.com/MoonshotAI/kimi-code
+upstream_version: v0.31.1
 upstream_commit: e22479a62eed9c3b78a67b313f4332c2c0ba9670
 upstream_commit_date: 2026-08-01
 status: historical
@@ -25,7 +26,7 @@ Kimi Code 当前存在两代可运行引擎，不能把它们混成一个实现�
 - v2 把“事实提交”和“实时观察”拆成两个平面：`WireService` 先归约内存 Model，并为持久化 Op 安排 `wire.jsonl` 追加；Agent-scoped `IEventBus` 同步广播 UI/投影事件。流式 delta 只走 EventBus，完整 content/tool/step 事实走 Wire。
 - 因此，Kimi Code 与参考 ADK event loop 的共同点是“外层编排器反复驱动 LLM/工具并向上游发事件”；关键差异是 Kimi 的循环继续条件是 **队列中仍有请求**，不是执行逻辑 `yield` 后由 Runner 恢复生成器。
 
-本文以 commit `e22479a62eed9c3b78a67b313f4332c2c0ba9670` 为基线，结论来自源码阅读，未执行真实模型或工具的 runtime 实验。分析时上游工作区在 legacy v1 的若干 loop/hook 文件中存在未提交的用户修改；v2 相关文件无工作区修改，因此 v2 结论对应所记录 commit。
+本文以版本 `v0.31.1`（源码 commit `e22479a62eed9c3b78a67b313f4332c2c0ba9670`）为基线，结论来自源码阅读，未执行真实模型或工具的 runtime 实验。分析时上游工作区在 legacy v1 的若干 loop/hook 文件中存在未提交的用户修改；v2 相关文件无工作区修改，因此 v2 结论对应所记录版本提交。
 
 ## Runtime 架构图
 

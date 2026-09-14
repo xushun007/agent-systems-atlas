@@ -4,10 +4,10 @@
 
 ## 版本
 
-| Review date | Snapshot | Upstream commit | Change level | 主要变化 | 文档 | 图 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-09-13 | `2026-09-13.ee2cac1` | `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd` | major | `AgentLoopService` 变为门面；Agent/Turn 状态机接管队列、续步、重试和工具调度 | [文档](agent-loop-runtime-2026-09-13-ee2cac1.md) | [Excalidraw](../diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw) |
-| 2026-08-20 | `2026-08-20.e22479a` | `e22479a62eed9c3b78a67b313f4332c2c0ba9670` | baseline | Turn FIFO、每 Turn `StepRequestQueue` 与 continuation aspects | [文档](agent-loop-runtime-2026-08-20-e22479a.md) | [Excalidraw](../diagrams/agent-loop-runtime-2026-08-20-e22479a.excalidraw) |
+| Version | Review date | Snapshot | Upstream commit | Change level | 主要变化 | 文档 | 图 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `v0.42.0+`（未发布主线） | 2026-09-13 | `2026-09-13.ee2cac1` | `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd` | major | `AgentLoopService` 变为门面；Agent/Turn 状态机接管队列、续步、重试和工具调度 | [文档](agent-loop-runtime-2026-09-13-ee2cac1.md) | [Excalidraw](../diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw) |
+| `v0.31.1` | 2026-08-20 | `2026-08-20.e22479a` | `e22479a62eed9c3b78a67b313f4332c2c0ba9670` | baseline | Turn FIFO、每 Turn `StepRequestQueue` 与 continuation aspects | [文档](agent-loop-runtime-2026-08-20-e22479a.md) | [Excalidraw](../diagrams/agent-loop-runtime-2026-08-20-e22479a.excalidraw) |
 
 ## 2026-09-13 · `ee2cac1`
 

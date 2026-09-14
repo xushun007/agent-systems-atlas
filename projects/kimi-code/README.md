@@ -1,13 +1,15 @@
 # Kimi Code
 
 - Repository: https://github.com/MoonshotAI/kimi-code
-- Analyzed commit: `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd`
-- Last reviewed: 2026-09-13
-- Current architecture snapshot: `2026-09-13.ee2cac1`
+- Analyzed version: `v0.40.0` (`@moonshot-ai/kimi-code@0.40.0`)
+- Source commit: `e27ee60894d714e5844db75da69f29120a2bce43`
+- Last reviewed: 2026-09-14
+- Current architecture snapshot: `2026-09-14.e27ee60`
 
 ## 内容
 
 - [整体系统架构](arch/system-architecture.md) · [版本演进](arch/system-architecture-history.md)
+- [Harness 全程演进（v0.40.0）](research/codex-harness-evolution.md) · [演进索引](research/runtime-harness-history.md)
 - [当前整体架构图（Excalidraw）](diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw)
 - [Agent Loop Runtime](arch/agent-loop-runtime.md) · [版本演进](arch/agent-loop-runtime-history.md)
 - [当前 Runtime 图（Excalidraw）](diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw)

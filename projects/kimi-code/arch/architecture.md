@@ -1,5 +1,7 @@
 # Kimi Code 核心架构解析
 
+> 分析版本：`v0.31.1`；精确源码提交：`e22479a62eed9c3b78a67b313f4332c2c0ba9670`。本文是早期整体结构笔记，当前 v0.40.0 的演进分析见 [`research/codex-harness-evolution.md`](../research/codex-harness-evolution.md)。
+
 本文档旨在详尽解析本项目的核心架构设计、模块划分、数据/控制流，以及关键组件的生命周期与协作模式。
 
 ---

@@ -3,6 +3,7 @@ title: Kimi Code 整体架构
 snapshot_id: 2026-08-20.e22479a
 reviewed_at: 2026-08-20
 upstream_repository: https://github.com/MoonshotAI/kimi-code
+upstream_version: v0.31.1
 upstream_commit: e22479a62eed9c3b78a67b313f4332c2c0ba9670
 upstream_commit_date: 2026-08-01
 status: historical
@@ -14,12 +15,13 @@ verification:
 diagram: ../diagrams/system-architecture-2026-08-20-e22479a.excalidraw
 ---
 
-# Kimi Code 整体架构
+# Kimi Code 整体架构（v0.31.1）
 
 > 结论：Kimi Code 是一个由多种产品入口、宿主适配层和 Agent Runtime 组成的系统。在当前分析版本中，它仍保留 legacy `agent-core`，同时以 `agent-core-v2` 建立按 `App → Workspace → Session → Agent` 分层的运行时。v2 的关键设计不是某个循环类，而是以 Scope 明确资源生命周期，以 Agent 聚合执行事实，再从事件和持久化记录构建 Transcript 等读取模型。
 
 - 上游仓库：<https://github.com/MoonshotAI/kimi-code>
-- 分析提交：`e22479a62eed9c3b78a67b313f4332c2c0ba9670`
+- 分析版本：`v0.31.1`
+- 源码提交：`e22479a62eed9c3b78a67b313f4332c2c0ba9670`
 - 最后复核：2026-08-20
 - 可编辑架构图：[Kimi Code Overall Architecture](../diagrams/system-architecture-2026-08-20-e22479a.excalidraw)
 - 执行链细化：[Agent Loop Runtime](agent-loop-runtime.md)

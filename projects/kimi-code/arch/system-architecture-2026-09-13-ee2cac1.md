@@ -3,6 +3,7 @@ title: Kimi Code 整体架构
 snapshot_id: 2026-09-13.ee2cac1
 reviewed_at: 2026-09-13
 upstream_repository: https://github.com/MoonshotAI/kimi-code
+upstream_version: v0.42.0+ (unreleased mainline)
 upstream_commit: ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd
 upstream_commit_date: 2026-09-12
 previous_snapshot: 2026-08-20.e22479a
@@ -15,7 +16,7 @@ verification:
 diagram: ../diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw
 ---
 
-# Kimi Code 整体架构
+# Kimi Code 整体架构（v0.42.0+ 未发布主线）
 
 > 结论：Kimi Code 已从 v1/v2 双引擎迁移态收敛为一个由 `agent-core-v2` 承载的 Core。产品入口经 SDK 或 `kap-server` 进入同一运行时；Core 继续以 `App → Workspace → Session → Agent` 管理生命周期，而 Agent 内部改由事件溯源状态与状态机执行。整体设计的主轴因此更清晰：**多宿主、单核心、分层 Scope、事件化执行、可重建读取模型**。
 

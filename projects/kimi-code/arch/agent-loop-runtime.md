@@ -1,16 +1,18 @@
 # Kimi Code Agent Loop Runtime
 
+> 当前版本关联：`v0.42.0+` 未发布主线；精确源码提交为 `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd`。历史版本见下方索引。
+
 > 稳定入口：当前 Agent Loop 由 `AgentPromptService` 管理输入生命周期，`AgentLoopService` 提供外部门面，`MachineEngine` 驱动 Agent Machine 与嵌套 Turn Machine；循环继续由状态转移和工具结果决定，不再由 `StepRequestQueue`/continuation aspect 编排。
 
 ## 当前快照
 
-- [Agent Loop Runtime · 2026-09-13 · `ee2cac1`](agent-loop-runtime-2026-09-13-ee2cac1.md)
+- [Agent Loop Runtime · v0.42.0+ 未发布主线 · `ee2cac1`](agent-loop-runtime-2026-09-13-ee2cac1.md)
 - [可编辑 Excalidraw 图](../diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw)
 - [版本演进索引](agent-loop-runtime-history.md)
 
 ## 历史快照
 
-- [2026-08-20 · `e22479a`](agent-loop-runtime-2026-08-20-e22479a.md)
+- [v0.31.1 · `e22479a`](agent-loop-runtime-2026-08-20-e22479a.md)
 - [历史 Excalidraw 图](../diagrams/agent-loop-runtime-2026-08-20-e22479a.excalidraw)
 
 ## 视图关系

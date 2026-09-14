@@ -4,10 +4,10 @@
 
 ## 版本
 
-| Review date | Snapshot | Upstream commit | Change level | 主要变化 | 文档 | 图 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-09-13 | `2026-09-13.ee2cac1` | `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd` | major | 删除 legacy Core；Agent 执行改为状态机；协议、索引与 MCP 管理面增强 | [文档](system-architecture-2026-09-13-ee2cac1.md) | [Excalidraw](../diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw) |
-| 2026-08-20 | `2026-08-20.e22479a` | `e22479a62eed9c3b78a67b313f4332c2c0ba9670` | baseline | 双引擎迁移态；建立 Scope、Wire 与 Transcript 高层模型 | [文档](system-architecture-2026-08-20-e22479a.md) | [Excalidraw](../diagrams/system-architecture-2026-08-20-e22479a.excalidraw) |
+| Version | Review date | Snapshot | Upstream commit | Change level | 主要变化 | 文档 | 图 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `v0.42.0+`（未发布主线） | 2026-09-13 | `2026-09-13.ee2cac1` | `ee2cac102b835fcd7adb3d4b9bc3d62b0b71cdfd` | major | 删除 legacy Core；Agent 执行改为状态机；协议、索引与 MCP 管理面增强 | [文档](system-architecture-2026-09-13-ee2cac1.md) | [Excalidraw](../diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw) |
+| `v0.31.1` | 2026-08-20 | `2026-08-20.e22479a` | `e22479a62eed9c3b78a67b313f4332c2c0ba9670` | baseline | 双引擎迁移态；建立 Scope、Wire 与 Transcript 高层模型 | [文档](system-architecture-2026-08-20-e22479a.md) | [Excalidraw](../diagrams/system-architecture-2026-08-20-e22479a.excalidraw) |
 
 ## 2026-09-13 · `ee2cac1`
 
