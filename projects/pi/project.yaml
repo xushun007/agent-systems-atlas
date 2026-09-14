@@ -1,4 +1,8 @@
 name: pi
 repository: https://github.com/earendil-works/pi
-analyzed_commit: 1287b69fe026a9c3f9cec8a220ad9405851f7dc3
-last_reviewed: 2026-08-14
+analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
+analyzed_version: v0.85.1
+analyzed_commit_date: 2026-09-05
+last_reviewed: 2026-09-14
+existing_architecture_snapshot_commit: 1287b69fe026a9c3f9cec8a220ad9405851f7dc3
+existing_architecture_snapshot_version: coding-agent-0.79.8

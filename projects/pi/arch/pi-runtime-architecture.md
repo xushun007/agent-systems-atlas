@@ -3,7 +3,9 @@
 结论：Pi 的整体设计不是一个庞大的 Runtime Core，而是“轻量 Agent 循环 + 会话编排层 + 可插拔运行时服务”。`Agent` 只维护消息状态、模型流和工具循环；`AgentSession` 承接 coding agent 的产品语义；入口模式、恢复能力和工作目录绑定服务则由更外层的 Runtime Host 统一管理。
 
 - 上游仓库：`https://github.com/earendil-works/pi`
-- 分析提交：`1287b69fe026a9c3f9cec8a220ad9405851f7dc3`
+- 分析版本：`coding-agent-0.79.8`
+- 分析提交：[`1287b69fe026a9c3f9cec8a220ad9405851f7dc3`](https://github.com/earendil-works/pi/commit/1287b69fe026a9c3f9cec8a220ad9405851f7dc3)
+- 提交日期：2026-06-19
 - 复核日期：2026-08-14
 - 架构图：[Pi Agent Runtime（Excalidraw）](../diagrams/pi-runtime-architecture.excalidraw)
 - 历史对照：[Agent Runtime（HTML）](agent-runtime.html)，聚焦 `packages/agent` 内部循环，不代表完整 coding-agent runtime
@@ -88,5 +90,6 @@ Pi 的可组合性来自两条刻意保持的边界：一是 `AgentMessage` 到 
 ## 未确认事项
 
 - 本次结论来自提交 `1287b69fe026a9c3f9cec8a220ad9405851f7dc3` 的源码与测试阅读，未执行真实 Provider、交互 TUI 或跨 cwd 恢复实验。
+- 该提交对应 `packages/coding-agent/package.json` 的 `0.79.8`；版本名称用于阅读，完整 commit 仍是证据边界。
 - 上游工作区存在未提交修改，本次分析只读取 Git 提交对象，未把工作区改动作为证据。
 - 图中 Runtime Services 是职责归纳；它们不应被理解为一组固定的一对一实现类。
