@@ -18,6 +18,7 @@
 - [Multi-Agent V2：线程树、消息语义与资源治理](mechanisms/multi-agent-v2.md)
 - [权限控制面：配置约束、Profile 投影与运行时收敛](mechanisms/permission-configuration.md)
 - [符号级源码证据索引](source-map.md)
+- [Codex Harness Runtime 演进研究](research/codex-harness-evolution.md)
 
 全局架构关注主要组件之间的关系；分层架构强调职责和依赖方向；Runtime 架构进一步展开 Session、Submission 和 Turn Loop 的执行机制。
 
