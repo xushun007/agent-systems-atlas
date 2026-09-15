@@ -2,5 +2,6 @@ name: hermes-agent
 repository: https://github.com/NousResearch/hermes-agent
 analyzed_commit: 29112bef099274229cadff79cdff7bf7b99c4b77
 analyzed_version: v0.21.0 (tag v2026.8.31)
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-15
+research_document: research/hermes-harness-evolution.md
 research_document: research/hermes-harness-evolution.md

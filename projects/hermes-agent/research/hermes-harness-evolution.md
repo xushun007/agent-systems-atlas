@@ -240,3 +240,169 @@ Hermes 适合把 coding 作为一个 Agent profile/工具集合/环境配置，�
 - [固定 commit 的 Tools Runtime 文档](https://github.com/NousResearch/hermes-agent/blob/29112bef099274229cadff79cdff7bf7b99c4b77/website/docs/developer-guide/tools-runtime.md)
 - [固定 commit 的 Session Storage 文档](https://github.com/NousResearch/hermes-agent/blob/29112bef099274229cadff79cdff7bf7b99c4b77/website/docs/developer-guide/session-storage.md)
 - [v2026.8.31 官方发布说明](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.8.31)
+
+## 10. Runtime 状态所有权
+
+Hermes 的状态并不集中在单一的 Session 对象中，而是由中心 Agent、数据库、宿主回调和执行后端共同持有。为了理解它的真实边界，可以分成以下几类：
+
+| 状态 | 主要所有者 | 是否持久化 | 变化方式 |
+| --- | --- | --- | --- |
+| Session identity | SessionDB + platform session key | 是 | resume、lineage、平台重新绑定 |
+| Conversation facts | SessionDB message rows | 是 | 追加 user/assistant/tool/system rows |
+| Active turn | `AIAgent` loop + turn context | 通常通过结果间接保存 | continuation、retry、steer、interrupt |
+| Step/iteration | conversation loop 内存态 | 通常否 | 一次 model response/tool round 完成后释放 |
+| Tool capability | registry、toolset、MCP/plugin | 部分 | 每轮过滤、凭据/平台变化、配置变化 |
+| Approval decision | tool check/callback/host | 可能按 session 记忆 | allow、deny、ask、abort |
+| Environment | runtime cwd、task、backend、host | metadata 可保存 | session/turn/task 重新解析 |
+| Task resource | terminal/browser/VM backend | 视后端而定 | 创建、执行、清理、取消 |
+
+这张表说明 Hermes 的中心化程度：`AIAgent` 是 active turn 的编排者，但不是所有外部状态的唯一 owner；SessionDB 拥有长期事实，backend 拥有进程和 workspace，宿主 callback 拥有交互输入。它与 event-sourced runtime 的区别在于，Step 和 approval 并没有统一变成可重放的 durable event。
+
+## 11. 完整控制流与终态收敛
+
+一次用户输入可以抽象为如下流程：
+
+```text
+resolve platform/profile/session
+  → restore or create AIAgent
+  → append user input
+  → prepare context and tool definitions
+  → model request
+  → parse text/tool calls
+  → check policy and approval
+  → execute local/remote task
+  → append observation and usage
+  → continue, retry, compress, steer, or finalize
+  → persist turn result and release resources
+```
+
+一个稳定的终态至少需要同时处理四条路径：
+
+1. **正常完成**：最后的 assistant result、usage、memory 和 task status 一起提交；
+2. **工具失败**：将可理解的 error observation 回注模型，或在不可恢复时结束 turn；
+3. **用户中断**：停止模型继续请求，取消 active task，关闭未完成工具序列，持久化 interrupted 状态；
+4. **宿主断开**：区分消息投递失败和 Agent 执行失败，保留 Session，使 Gateway/ACP/CLI 能够重新连接。
+
+Hermes 的实现重点是 finalizer：它把中断、清理、持久化、memory flush 和结果包装集中到 turn 尾部。这有利于减少散落的 cleanup 分支，但也使 finalizer 成为多个状态机的汇合点；若某个 backend 或 callback 没有正确响应，Session 可能已经落盘，而外部 task 仍未完全清理。
+
+## 12. 持续输入、steer 与中断
+
+Hermes 的持续输入不是单一的“新消息”概念。可以区分：
+
+- **queued input**：当前 turn 结束后作为下一次调用的用户消息；
+- **steer input**：在模型/工具循环仍可继续时改变下一轮方向；
+- **approval response**：只解决当前 tool call 的等待状态；
+- **interrupt**：取消当前 turn 或指定 task，并决定是否仍保留 Session。
+
+它们的区别在于是否改变 conversation facts、是否改变当前 loop、是否需要 tool correlation。approval response 不能被普通 user message 替代；steer 也不能无条件当作新 Session，否则模型会失去当前 task 的工具和上下文。Hermes 目前更偏向通过 callback、interrupt state 和消息追加来实现这些语义，而不是单独建立一个像 Codex/Cline 那样的持久 prompt queue。
+
+因此需要保留一个重要判断：Hermes 支持持续输入和 live steer，但其队列顺序、输入是否抢占当前 model stream、approval 与 steer 同时到达时的优先级，尚未由 runtime experiment 验证。
+
+## 13. Environment 的真实边界
+
+Hermes 的 Environment 可以定义为：
+
+> Session/Turn 中某个工具实际可访问的工作目录、任务资源、执行后端、凭据和宿主交互能力的组合。
+
+它至少有三种时间尺度：
+
+| 时间尺度 | 示例 | 典型变化 |
+| --- | --- | --- |
+| Session 级 | 默认 cwd、profile、terminal backend | resume 或配置切换 |
+| Turn 级 | task id、临时目录、当前 approval callback | 每次用户输入重新建立 |
+| Tool 级 | browser tab、SSH channel、MCP connection | 调用创建、复用或清理 |
+
+这使 Hermes 能够把同一 Agent profile 投射到本地终端、Docker、SSH、Modal、ACP 或 Desktop；但也意味着 environment identity 不是天然不可变的。若用户在 turn 中切换 cwd、增加可信目录或切换 backend，后续工具需要获得新的环境摘要和权限判断；当前消息历史不能单独证明执行环境没有变化。
+
+Hermes 的 Environment 仍更接近“工具执行后端组合”，而不是拥有 workspace、checkpoint、event log 和身份的完整 execution domain。这是它与 Codex、Gemini CLI、OpenHands 的重要差异。
+
+## 14. 设计原则
+
+### 原则 1：保留一个中心化、可读的 Agent Loop
+
+Hermes 没有把所有逻辑拆成分布式 actor 或复杂 workflow graph，而是让 `AIAgent` 继续拥有一次 turn 的主要编排权。这样 provider fallback、工具循环、压缩、中断和结果封装可以在同一个控制路径中理解。
+
+收益是调试和扩展门槛低；代价是中心对象承担的责任较多，Step、approval、task 和 environment 的独立恢复能力弱于专门的 durable runtime。
+
+### 原则 2：通过稳定消息协议屏蔽 provider 差异
+
+不同模型 API 在 provider adapter 边界转换，内部使用统一的 user/assistant/tool message 语义。这样工具循环、session storage、usage attribution 和压缩可以复用。
+
+代价是最小公分母会限制 provider-specific 能力；thinking block、tool schema、streaming 和 cache control 需要额外 metadata，否则转换会损失信息。
+
+### 原则 3：扩展点优先于内核重写
+
+provider、tool registry、toolset、MCP、plugin、memory、context engine、terminal backend 和 platform adapter 都可替换，而核心 loop 保持稳定。Hermes 的演进主要是围绕 loop 增加扩展面。
+
+收益是新平台和新执行后端接入快；代价是能力协商和安全策略分散在多个扩展点，难以形成单一的 policy kernel。
+
+### 原则 4：长期身份由 SessionDB 提供，活动控制由 Agent 提供
+
+SessionDB 保存消息、usage、lineage、压缩和检索数据；`AIAgent` 管理当前 turn 的上下文、工具和 callbacks。数据库不是每一步都直接驱动 loop，Agent 也不独占长期事实。
+
+这种分工适合 resume、Gateway、Cron 和多 profile；但 Step 状态主要在内存中，崩溃发生在工具调用中间时，只能依赖清理和消息记录恢复，而不是完整的 event replay。
+
+### 原则 5：工具能力是动态组合，不是固定函数表
+
+Registry、toolset、check function、MCP、skills 和 plugin 共同决定当前可见、可用和可执行的工具。模型请求中的 schema 只是 capability 的投影，dispatch 时还需要重新检查依赖、凭据、平台和审批。
+
+这为多入口和多环境提供灵活性；同时工具集合变化可能改变 prompt 前缀，provider cache 与 session context 的稳定性需要显式管理。
+
+### 原则 6：Environment 由宿主和工具共同解析
+
+Hermes 不把 cwd 固化成唯一环境对象，而是根据 session context、task id、terminal backend、profile 和 host callback 形成有效执行域。这样同一 agent 可以运行在本地、远程、容器或桌面环境。
+
+代价是 environment 的 identity、审计和恢复语义不如 workspace-owned runtime 明确；仅从 session transcript 不能完整重建某次命令实际运行在哪里。
+
+### 原则 7：错误优先回注模型，终止原因进入持久记录
+
+工具错误、格式错误、超时和 provider failure 尽可能变成 observation 或 retry signal；不可恢复路径则由 finalizer 统一记录 interrupted/failed 状态。这样模型有机会自我修复，评测和用户也能知道为何结束。
+
+代价是模型可能在错误循环中消耗预算，因此 iteration、cost、wall-clock 和 retry limit 必须构成终止保险。
+
+### 原则 8：平台适配器不应重新实现 Agent 语义
+
+Gateway、ACP、API、Cron、Desktop 和 Bot Mode 负责 session key、输入输出、认证、投递和 UI；Agent loop 负责推理、工具和结果。平台扩展应复用 session/turn，而不是复制一套 agent。
+
+收益是同一 Agent identity 可以跨入口继续；代价是平台断线、重复投递、审批回调和后台任务需要统一 correlation 与幂等策略。
+
+### 原则 9：上下文压缩服务于继续运行，而不是删除历史
+
+ContextEngine、memory、summary 和 child session lineage 让长对话在 token 预算下继续。有效 prompt 可以是压缩后的投影，但 SessionDB 仍保留可搜索的历史和 lineage。
+
+这提高了长期运行能力；代价是摘要边界可能改变模型所见语义，且压缩前后 tool call/result 配对、权限上下文和环境摘要必须保持足够完整。
+
+## 15. 设计原则的整体取舍
+
+| 设计取向 | 获得的能力 | 付出的代价 |
+| --- | --- | --- |
+| 中心化 Agent Loop | 易读、易调试、provider 复用 | 状态集中、恢复粒度较粗 |
+| SessionDB + message rows | resume、搜索、lineage、Gateway | 不是完整 event-sourced execution |
+| 动态 registry/toolset | MCP、plugin、平台扩展 | capability 与 policy 分散 |
+| callback 驱动审批 | CLI、ACP、Gateway、Desktop 复用 | 审批事实不一定统一持久化 |
+| backend 可替换 | 本地、容器、远程、托管 sandbox | environment identity 不够稳定 |
+| child session/subagent | 多 Agent、Cron continuity | parent-child 取消和上下文边界复杂 |
+| finalizer 集中收敛 | 统一清理与终态包装 | finalizer 成为高耦合汇合点 |
+
+## 16. 作为 Coding Agent 的产品定位
+
+Hermes 不是只为代码编辑设计的窄型 coding harness，而是一个“通用个人 Agent 平台，其中 coding 是最重要的工具化 profile”。它的 coding 能力依赖 terminal、browser、file edit、MCP、subagent 和多种 environment backend；同一套 Session、Gateway、Cron 和 Bot runtime 也可以承载非 coding 任务。
+
+这种定位带来两个结果：
+
+1. Hermes 的架构演进重点是多入口、持续身份、工具扩展和 Agent 间协作，而不是把 coding workspace 的 checkpoint、diff review、文件回滚做成绝对核心；
+2. 研究 Hermes 时，不能只比较它是否有 `run_agent` loop，还要检查一个 Agent identity 能否跨 CLI、Gateway、Cron、ACP 和 Desktop 继续，以及这些入口是否共享相同的权限、环境和恢复语义。
+
+因此 Hermes 与 Codex 的相似点是都把 session、tool、context、approval 和 environment 纳入 harness；差异在于 Codex 以 coding execution consistency 为中心，Hermes 以可扩展的个人 Agent platform 为中心。Hermes 的扩展性更宽，但其 Step 不可变性、环境快照和审批事件一致性相对弱，需要在后续实测中验证。
+
+## 17. Hermes 报告的最终证据边界
+
+本报告新增的状态模型和设计原则分为三种证据：当前固定 commit 源码直接确认的对象边界；官方架构/发布文档确认的产品方向；基于两者归纳出的设计解释。由于没有完整历史和真实 Gateway/ACP/Cron 运行实验，不能把“可恢复”“跨入口一致”理解为已经通过端到端验证。
+
+尤其需要避免三种过度结论：
+
+- 不把 `v2026.8.31` 的当前结构写成每个历史阶段都已经存在；
+- 不把 SessionDB 的消息持久化写成 Step、approval、task process 的完整恢复日志；
+- 不把多种 terminal backend 的统一接口写成所有 backend 具有相同的隔离和取消语义。
+
+当前最可靠的结论是：Hermes 已经从中心化 Agent Loop 演进为围绕该 Loop 组织的多入口、多环境、多 Agent 平台，但它仍保留中心对象和消息行作为主要控制/事实模型。
