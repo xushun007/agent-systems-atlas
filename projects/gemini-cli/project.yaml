@@ -1,0 +1,7 @@
+name: gemini-cli
+repository: https://github.com/google-gemini/gemini-cli
+analyzed_commit: fb0d535af931b27c51e87e5e6ade72905b1e8390
+analyzed_ref: v0.59.0
+history_depth: 363 commits available locally; repository remains shallow before this range
+last_reviewed: 2026-09-15
+research_document: research/gemini-cli-harness-evolution.md
