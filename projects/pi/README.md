@@ -13,4 +13,4 @@
 - [Pi Agent Runtime 架构图（Excalidraw）](diagrams/pi-runtime-architecture.excalidraw)
 - [历史版 Agent Runtime（HTML）](arch/agent-runtime.html)：聚焦 `packages/agent` 内部循环，用于对照
 
-`coding-agent-0.79.8` 是一个已有的独立架构快照，不是本演进研究的历史基线。本目录的演进研究覆盖 Pi 从项目早期到 `v0.85.1`，并建议优先展示 `v0.45.0`、`v0.58.0`、`v0.80.0` 和 `v0.84.0` 这些架构转折点。本地 `/Users/admin/devp/ai/agent/pi` 是独立的源码工作区；后续源码版本不会自动改变本分析。
+`coding-agent-0.79.8` 是一个已有的独立架构快照，不是本演进研究的历史基线。本目录的演进研究覆盖 Pi 从项目早期到 `v0.85.1`，并建议优先展示 `v0.45.0`、`v0.58.0`、`v0.80.0` 和 `v0.84.0` 这些架构转折点。上游源码工作区与 Atlas 分离；后续源码版本不会自动改变本分析。

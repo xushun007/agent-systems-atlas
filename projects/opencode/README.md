@@ -10,4 +10,4 @@
 
 - [OpenCode Harness 架构演进研究（项目诞生至 v2.0.0）](research/opencode-harness-evolution.md)
 
-源码工作区为独立的 `/Users/admin/devp/ai/agent/opencode`。当前工作树固定在 `v2.0.0`；`v1.0.0` 使用独立稀疏工作树作为源码参照，不复制进 Atlas。
+上游源码工作区与 Atlas 分离。当前工作树固定在 `v2.0.0`；`v1.0.0` 使用独立稀疏工作树作为源码参照，不复制进 Atlas。

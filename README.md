@@ -4,15 +4,6 @@
 
 本仓库用于长期沉淀源码分析、架构设计、运行机制、横向比较和实验记录。它不是源码集合，也不承载上游项目的开发工作；它是独立于各个源码仓库的知识库。
 
-## 为什么建立这个仓库
-
-直接把 `notes/` 放在被分析的源码仓库中存在两个问题：
-
-- 笔记通常是未跟踪文件，可能被清理工作区等操作误删；
-- 笔记可能被意外加入上游项目的提交。
-
-本仓库通过物理隔离解决这两个问题：源码留在各自的 Git 仓库中，所有研究成果统一保存在 Atlas，并单独提交和备份。
-
 ## 本地布局
 
 当前各仓库位于同一个父目录，无需额外建立 `sources/`：
@@ -54,13 +45,20 @@ agent-systems-atlas/
 
 | 项目 | 当前内容 |
 | --- | --- |
-| [Kimi Code](projects/kimi-code/README.md) | 核心架构、执行循环、与 Hermes Agent 和 OpenCode 的对比 |
-| [Codex](projects/codex/README.md) | 项目全局架构、Runtime 执行链、工具系统与安全边界 |
-| [Google ADK](projects/adk-python/README.md) | 整体架构、代码执行、Runner、Session 存储 |
-| [mini-SWE-agent](projects/mini-swe-agent/README.md) | SWE-Bench 处理流程、用例与字段分析 |
-| [Pi](projects/pi/README.md) | 整体 Runtime 架构、Session 编排、模型与工具循环、JSONL 会话树及恢复机制 |
+| [Codex](projects/codex/README.md) | `rust-v0.154.0` Harness 演进、Runtime 执行链、工具系统与安全边界 |
+| [Pi](projects/pi/README.md) | `v0.85.1` Runtime/Harness 演进、Session 编排、Lane/Drive 与恢复机制 |
+| [Gemini CLI](projects/gemini-cli/README.md) | `v0.59.0` Context、Tool Scheduler、Session Recovery 与 Workspace Trust |
+| [OpenCode](projects/opencode/README.md) | `v2.0.0` Backend Runtime、Inbox、Effect Service 与 durable execution |
+| [OpenHands](projects/openhands/README.md) | Canvas control plane 与 SDK/Agent Server backend runtime（`v1.15.0`） |
+| [Cline](projects/cline/README.md) | CLI/shared core、Prompt Queue、Policy、Checkpoint 与多宿主 Runtime |
+| [Claude Code](projects/claude-code/README.md) | 第三方泄漏快照中的 Query、Task、Permission 与 Remote Session 架构 |
+| [Hermes Agent](projects/hermes-agent/README.md) | `v2026.8.31` 多入口、多环境、多 Agent 平台 Runtime |
+| [Kimi Code](projects/kimi-code/README.md) | `v0.40.0` v1/v2 双引擎迁移、Scope、Wire/Replay 与 Step Runtime |
+| [Google ADK](projects/adk-python/README.md) | `v2.8.0` App、Runner、Workflow、Event 与 resumable application runtime |
+| [Navi Agent](projects/navi-agent/README.md) | v0.1 Runtime 骨架、Session/Run、Policy、Event 与 Evolution 边界 |
+| [mini-SWE-agent](projects/mini-swe-agent/README.md) | `v2.4.5` 最小 Agent/Model/Environment 闭环与 benchmark harness |
 
-每个项目通过 `project.yaml` 记录上游仓库地址、已分析的 commit 和复查日期，避免源码更新后分析结论失去版本上下文。
+每个项目通过 `project.yaml` 记录上游仓库地址、已分析的 commit 和复查日期，研究报告使用固定版本的 GitHub 源码链接，避免源码更新后分析结论失去版本上下文。报告只保存于 Atlas；上游源码仓库位于独立的 sibling workspace。
 
 ## 研究原则
 
@@ -147,15 +145,3 @@ code agent-research.code-workspace
 - 结论和未确认事项。
 
 源码阅读只能说明“代码看起来如何工作”，实验用于验证“它实际如何工作”。
-
-## 防丢失策略
-
-物理隔离可以防止笔记进入上游提交，但不能替代版本控制和备份。完成或阶段性完成分析后，应及时：
-
-```bash
-git add <相关文件>
-git commit -m "docs: add <topic> analysis"
-git push
-```
-
-只有当研究成果进入 Git 历史并推送到远端后，才能同时抵御误删、工作区清理和本地磁盘故障。
