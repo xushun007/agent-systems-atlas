@@ -1,5 +1,7 @@
 # Code Executor 架构总览
 
+> **v2.8.0 基线**：依据官方 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654) 审阅。主链保持为 executor + LLM flow processor，但执行结果通过 Event、Artifact 和 Session state 进入可恢复 Runtime；版本事件见 [`CHANGELOG.md`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171)。
+
 ## 什么是 Code Executor
 
 ADK 允许 agent 执行 LLM 生成的代码并将结果注入对话上下文。`CodeExecutor` 就是这个"执行环境"的抽象。
@@ -77,3 +79,7 @@ _response_processors = [
 | `CodeExecutionResult` | `{stdout, stderr, output_files}` | 执行输出 |
 | `File` | `{name, content, mime_type}` | 文件数据 |
 | `CodeExecutorContext` | session state 包装 | 跨 invocation 持久化上下文 |
+
+## v2.8.0 版本记录
+
+本版本保持 Code Executor 作为 LLM flow processor 的定位，重点修复其与长生命周期 Runtime 的交界：Live 运行结束时停止后台工具任务，恢复时避免重复 function execution，MCP session pool 回收 idle sessions，并增加 per-workflow tool-call/token telemetry。Code Executor 本身仍不拥有 Workflow 调度或 Session 恢复；这些由 Runner、InvocationContext 和 Event history 负责。

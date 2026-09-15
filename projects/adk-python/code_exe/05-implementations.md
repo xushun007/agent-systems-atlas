@@ -1,5 +1,7 @@
 # 六种实现对比
 
+> **版本基线（v2.8.0）**：本文依据官方 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)。实现能力、部署后端和安全边界以该版本源码为准。
+
 ## 1. BuiltInCodeExecutor
 
 ```python
@@ -121,3 +123,7 @@ class AgentEngineSandboxCodeExecutor(BaseCodeExecutor):
 | 代码提取 | 模型自带 | ` ```python ``` ` | ` ```python ``` ` | delimiters | delimiters | delimiters |
 | 输出文件 | 图片 → artifact | ❌ | 图片/CSV → artifact | 文件 → artifact | 文件 → artifact | ❌ |
 | 适用 | Gemini 2.0+ | 本地调试 | GCP 生产 | 自托管 | 集群生产 | ADK 平台 |
+
+## v2.8.0 版本记录
+
+v2.8.0 的实现差异仍然集中在“代码在哪里执行、状态由谁持有、输出如何保存”。`BuiltIn` 把执行交给模型服务；`UnsafeLocal` 只适合受控本地调试；Container/GKE/Agent Engine/Vertex 路径把隔离和生命周期交给外部执行环境。无论后端如何选择，结果都回到同一个 LLM flow/Event/Artifact 协议，因此上层 Workflow 不需要知道具体执行器。

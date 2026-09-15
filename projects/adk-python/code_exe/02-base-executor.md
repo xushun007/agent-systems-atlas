@@ -1,5 +1,7 @@
 # BaseCodeExecutor 详解
 
+> **版本基线（v2.8.0）**：本文依据 [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)；实现接口和执行器列表应以该版本源码为准。
+
 ## 抽象基类
 
 ```python
@@ -59,3 +61,7 @@ def execute_code(
 连续执行错误达到 `error_retry_attempts` 次后，整个 invocation 内不再尝试执行代码。
 
 错误计数存储在 `CodeExecutorContext` → session state `_code_executor_error_counts[invocation_id]` 中。每次成功执行 reset 计数。
+
+## v2.8.0 Runtime 边界
+
+`execute_code()` 的返回值不是最终用户响应，而是由 flow 转换为 `code_execution_result` Part 和 Event。Executor 只拥有执行后端；Session 持久化、artifact 保存、恢复身份和模型继续调用仍由 InvocationContext/Runner/LLM flow 负责。对于 resumable workflow，不能仅以 Python 进程中的 `execution_id` 判断恢复位置，必须结合 session event history 和 invocation identity。

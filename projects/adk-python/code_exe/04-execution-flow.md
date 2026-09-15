@@ -1,5 +1,7 @@
 # 核心执行流程
 
+> **版本基线（v2.8.0）**：依据官方 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)；版本级变化参见 [`v2.8.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171)。
+
 ## 执行流程全景
 
 ```
@@ -153,6 +155,8 @@ invocation 生命周期:
 ```
 
 计数器按 `invocation_id` 独立，跨 invocation 不互相影响。
+
+在 v2.8.0 中，错误重试必须和 invocation/workflow 的恢复语义区分：重试是当前 executor 的执行策略；resumption 则依赖 Event、node path、invocation id 和 workflow replay。二者不能通过简单地再次调用 `execute_code()` 替代。
 
 ## 有状态执行 (stateful)
 

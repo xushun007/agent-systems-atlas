@@ -1,5 +1,7 @@
 # 关键数据结构
 
+> **版本基线（v2.8.0）**：源码 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)。本页的数据结构解释的是 v2.8.0 与 Session/Event/Artifact Runtime 的关系。
+
 ## File
 
 ```python
@@ -76,3 +78,7 @@ class CodeExecutorContext:
 | `build_executable_code_part(code)` | 构建 `executable_code` Part |
 | `build_code_execution_result_part(result)` | 构建 `code_execution_result` Part |
 | `convert_code_execution_parts(content, ...)` | `executable_code` → text Part（反向转换） |
+
+## v2.8.0 持久化边界
+
+`CodeExecutorContext` 的执行会话、输入文件、错误计数和结果追踪最终通过 state delta 进入 Event/Session；它不是独立的 durable execution database。`File` 的二进制内容还可能转移到 ArtifactService，Event 只保留可供后续 LLM flow 识别的引用或结果 Part。恢复时必须同时考虑 Event、session state 和 artifact identity。

@@ -2,12 +2,16 @@
 
 ADK (Agent Development Kit) 的架构文档。
 
+## 版本基线
+
+本目录以 Google ADK Python `v2.8.0` 为当前源码基线：[`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)，源码审阅日期为 2026-09-15。版本演进依据见 [Harness / Runtime 演进研究](../research/adk-python-harness-evolution.md) 和官方 [`CHANGELOG.md`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md)。
+
 ## 文件索引
 
 | 文件 | 内容 |
 |------|------|
 | [01-architecture-overview.md](01-architecture-overview.md) | ASCII 架构图: 模块分层、Agent/Node 继承、事件流、状态存储、Plugin 系统、工具系统 |
-| [02-mermaid-diagrams.md](02-mermaid-diagrams.md) | Mermaid 图: 模块依赖、调用生命周期、状态分治 |
+| `01-architecture-overview.md` | v2.8.0 Runtime 架构、生命周期和组件边界 |
 
 ## 快速认知
 

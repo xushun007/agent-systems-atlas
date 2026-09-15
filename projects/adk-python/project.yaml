@@ -1,4 +1,8 @@
 name: adk-python
 repository: https://github.com/google/adk-python
-analyzed_commit: 5c8c55a7632f2388fea7af37cddba54714f84eb1
-last_reviewed: 2026-08-01
+analyzed_commit: 76a96e6221f1e2758a1ff82fde199cd079e9c654
+analyzed_version: v2.8.0
+last_reviewed: 2026-09-15
+research_document: research/adk-python-harness-evolution.md
+source_materialization: official-v2.8.0-archive
+git_history_status: official-tag-and-commit-metadata-verified; local-git-object-history-unavailable

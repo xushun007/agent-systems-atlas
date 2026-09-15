@@ -1,5 +1,7 @@
 # 单流集成
 
+> **版本基线（v2.8.0）**：本文依据官方 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)。该版本的处理器链仍是 Code Execution 的主集成点；恢复、工具确认和后台任务生命周期由更上层 Runtime 协同完成。
+
 ## 管线位置
 
 `_code_execution.py` 通过两个全局 processor 实例嵌入 LLM 流：
@@ -110,3 +112,7 @@ for content in llm_request.contents:
 ```
 
 把 `executable_code` Part → text Part（用 code_block_delimiter 包裹），`code_execution_result` Part → text Part（用 execution_result_delimiters 包裹）。这确保传给模型的 prompt 是纯文本格式。
+
+## v2.8.0 与恢复/缓存的边界
+
+处理器每轮都会重新构造或修改 `LlmRequest`，因此动态工具、代码执行结果和 context cache 都可能影响请求前缀。v2.8.0 的运行时修复重点不是把工具永久注入 prompt，而是保证动态工具、恢复请求和历史 Event 不造成重复执行或错误 resume。缓存相关变化见 [`2.7.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L180-L431) 和 [`2.8.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171)。

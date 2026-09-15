@@ -2,6 +2,12 @@
 
 源码位置: `src/google/adk/code_executors/` + `src/google/adk/flows/llm_flows/_code_execution.py`
 
+## 版本基线
+
+本文档组以 Google ADK Python `v2.8.0` 为基线，官方 commit 为 [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654)，审阅日期为 2026-09-15。版本变化见官方 [`v2.8.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171)。
+
+v2.8.0 的 Code Execution 没有改变 `BaseCodeExecutor → request/response processor → Event/Artifact` 主链，但对 runtime 边界进行了硬化：Live 运行结束时停止后台工具任务，恢复时避免重复 function execution，MCP tool session 回收 idle session，并通过 workflow/telemetry 记录工具调用和 token spend。
+
 ## 文件索引
 
 | 文件 | 内容 |

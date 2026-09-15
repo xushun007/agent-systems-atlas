@@ -1,5 +1,22 @@
 # ADK 架构总览
 
+> **版本基线（v2.8.0）**：本文依据 Google ADK Python 官方 commit [`76a96e6221f1e2758a1ff82fde199cd079e9c654`](https://github.com/google/adk-python/commit/76a96e6221f1e2758a1ff82fde199cd079e9c654) 的源码整理，审阅日期为 2026-09-15。发布变化以 [`v2.8.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171) 为准。本文描述的是 v2.8.0 当前实现，不代表早期 1.x 的 Agent-only 结构。
+
+## v2.8.0 架构结论
+
+ADK v2.8.0 的核心不是 `Runner` 直接驱动一个 Agent，而是由 `App` 装配 root node、全局插件和恢复/缓存策略，`Runner` 创建 `InvocationContext`，再由 `BaseNode`/`Workflow` 产生 Event。Session 中持久化的是 Event 和 state；Workflow 的调度状态在恢复时从事件历史重建。
+
+```text
+App (root node + plugins + cache/resumability policy)
+  └── Runner (services + lifecycle + event persistence)
+        └── InvocationContext (one invocation, queue, branch, resume)
+              └── BaseNode / Workflow / LlmAgent
+                    └── LLM step ↔ tools/code executor
+                          └── Event → SessionService → Session history
+```
+
+关键源码：[`App`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/apps/app.py)、[`Runner`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/runners.py)、[`InvocationContext`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/agents/invocation_context.py)、[`Workflow`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/workflow/_workflow.py)。
+
 ## 公共 API 层 (5 个导出符号)
 
 ```
@@ -242,10 +259,22 @@ BaseToolset (ABC)
 
 | 决策 | 内容 | 原因 |
 |------|------|------|
-| Runner/NodeRunner 分离 | 三层: Runner → NodeRunner → Workflow | 嵌套 workflow 防止死锁 |
+| Runner/NodeRunner 分离 | Runner 管生命周期，NodeRunner 驱动 BaseNode，Workflow 管图调度 | 并发、嵌套 workflow 和事件汇聚分层 |
 | Event 作为唯一数据流 | 所有交互通过 Event 传递 | 可持久化、可重放、可评估 |
-| Context 1:1 映射节点 | 每个节点有自己的 Context | 隔离节点状态和输出 |
+| Context 与 node path/branch 结合 | Context 共享 invocation 服务，但携带当前 node、branch、isolation scope | 隔离可见事件并支持恢复 |
 | InvocationContext 单例 | 一次调用一个实例 | 共享服务和事件队列 |
 | 状态前缀分治 | app:/user:/temp:/session | 不同 scope 不同生命周期 |
 | Plugin 钩子系统 | before/after/around | 横切关注点解耦 |
-| 双执行路径 | 新 node runtime vs 旧 plugin | 向后兼容 + 2.0 向前演进 |
+| Agent 与 Workflow 并存 | LlmAgent 保持对话/任务语义，BaseNode/Workflow 承载图调度 | 兼容旧 Agent API，同时迁移到 2.0 图 Runtime |
+
+## v2.8.0 版本记录
+
+相对于 2.0 GA，v2.8.0 的变化主要是 Runtime 硬化而不是新增一套顶层架构：
+
+- `Workflow` 成为推荐的图编排抽象，`SequentialAgent`/`ParallelAgent` 仍可用但已逐步转为兼容路径；
+- resumability 通过事件重建、branch/isolation、START/JoinNode、node auth 和 cancellation 继续收敛；
+- `App` 将 plugin、compaction、context cache 和 resumability 提升为应用级配置；
+- model capability、动态 toolset、MCP/A2A、Live resumption 与 telemetry 接入统一 Runtime；
+- 2.8.0 重点修复 duplicate execution、OAuth prompt、synthetic user event、contextvars 泄漏和 O(n²) rehydration。
+
+可追溯依据：官方 [`v2.8.0 CHANGELOG`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/CHANGELOG.md#L1-L171)、[`Workflow`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/workflow/_workflow.py)、[`Event`](https://github.com/google/adk-python/blob/76a96e6221f1e2758a1ff82fde199cd079e9c654/src/google/adk/events/event.py)。
