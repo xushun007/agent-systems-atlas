@@ -4,5 +4,27 @@ analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
 analyzed_version: v0.85.1
 analyzed_commit_date: 2026-09-05
 last_reviewed: 2026-09-14
+research_document: research/pi-harness-evolution.md
 existing_architecture_snapshot_commit: 1287b69fe026a9c3f9cec8a220ad9405851f7dc3
 existing_architecture_snapshot_version: coding-agent-0.79.8
+mechanism_reviews:
+  input_admission:
+    analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
+    analyzed_version: v0.85.1
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/02-input-admission.md
+  step_consistency:
+    analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
+    analyzed_version: v0.85.1
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/03-step-consistency.md
+  interruption_and_convergence:
+    analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
+    analyzed_version: v0.85.1
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/04-interruption-and-convergence.md
+  persistence_and_recovery:
+    analyzed_commit: d981de1229ef899957bbe968bc8dcda02a21f477
+    analyzed_version: v0.85.1
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/05-persistence-and-recovery.md
