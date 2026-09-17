@@ -1,4 +1,12 @@
 name: navi-agent
 repository: https://github.com/xushun007/navi-agent
-analyzed_commit: 5d4cb13810382a13c98185f5cb05fda909441801
-last_reviewed: 2026-08-13
+analyzed_commit: 0e50b0a61f695d7843c9f75d9a72a6d79a7a2c46
+last_reviewed: 2026-09-15
+research_document: research/navi-agent-v0.1-harness.md
+analyses:
+  - version: v0.1.0
+    upstream_ref: v0.1.0
+    upstream_ref_url: https://github.com/xushun007/navi-agent/tree/v0.1.0
+    analyzed_commit: 0e50b0a61f695d7843c9f75d9a72a6d79a7a2c46
+    reviewed_at: 2026-09-15
+    document: research/navi-agent-v0.1-harness.md

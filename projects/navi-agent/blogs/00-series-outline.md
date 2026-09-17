@@ -12,6 +12,7 @@
 
 - 仓库：`xushun007/navi-agent`
 - 分析 commit：`5d4cb13810382a13c98185f5cb05fda909441801`
+- v0.1 版本分析：[`0e50b0a61f695d7843c9f75d9a72a6d79a7a2c46`](https://github.com/xushun007/navi-agent/commit/0e50b0a61f695d7843c9f75d9a72a6d79a7a2c46)
 - 演进区间：2026-05-25 至 2026-08-12
 - 初版核心 Runtime：`da9c741`，84 行
 - 当前历史：410 个 commit
