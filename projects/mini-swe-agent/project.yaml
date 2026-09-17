@@ -1,4 +1,14 @@
 name: mini-swe-agent
 repository: https://github.com/SWE-agent/mini-swe-agent
-analyzed_commit: 4fe36a38941abde8a332bda950ca6c0de653a19f
-last_reviewed: 2026-08-01
+analyzed_commit: 38c01a19ed1a58dd17dd7c95010e4f69d059c777
+analyzed_ref: v2.4.5-2-g38c01a1
+history_depth: approximately 1016 commits available locally
+last_reviewed: 2026-09-15
+current_analysis: research/mini-swe-agent-harness-evolution.md
+research_document: research/mini-swe-agent-harness-evolution.md
+mechanism_reviews:
+  session_turn_step_consistency:
+    analyzed_commit: 38c01a19ed1a58dd17dd7c95010e4f69d059c777
+    analyzed_ref: v2.4.5-2-g38c01a1
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/01-state-ownership.md
