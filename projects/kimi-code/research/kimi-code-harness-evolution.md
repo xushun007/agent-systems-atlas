@@ -27,7 +27,7 @@ Kimi Code 的 harness 演进可以概括为四次边界移动：
 
 本文只讨论 Runtime/Harness，不把 TUI 组件、Web 的 Vue 状态或产品视觉当成核心架构。重要判断均固定到 `e27ee60894d714e5844db75da69f29120a2bce43` 的源码；commit 选择参考官方 [v0.40.0 release](https://github.com/MoonshotAI/kimi-code/releases/tag/@moonshot-ai%2Fkimi-code@0.40.0)。
 
-Graphify 对 `agent-core-v2`、legacy `agent-core`、`kap-server`、`kaos`、`kosong`、`protocol` 与 CLI 源码做了 code-only AST 索引；它用于确认模块边界和依赖密度，不替代源码阅读。
+对 `agent-core-v2`、legacy `agent-core`、`kap-server`、`kaos`、`kosong`、`protocol` 与 CLI 源码进行了定向结构阅读；模块边界和依赖关系以源码阅读为准。
 
 ## 1. 从诞生到 v0.40.0：重要演进节点
 
@@ -166,3 +166,167 @@ v2 的 [`EventDispatcherService`](https://github.com/MoonshotAI/kimi-code/blob/e
 - 源码阅读：v1/v2 loop、Prompt/Context、Scope/DI、permission/tool registry、Wire/EventDispatcher、CLI engine gate、SDK/ACP/kap-server imports。
 - 测试阅读：`packages/agent-core-v2/test` 中 loop、state、permission、session、wire 相关测试；本次未做运行实验。
 - 提交历史：浅历史约 1,000 个提交，覆盖 2026-05-22 项目起点至 2026-09-02 v0.40.0；未拉取完整历史。
+
+## 9. v1/v2 双引擎迁移的真实边界
+
+v1/v2 并存不是简单的“旧代码还没删掉”，而是两个不同成熟度的 runtime contract 同时服务不同宿主：
+
+| 维度 | legacy v1 | v2 |
+| --- | --- | --- |
+| 主要 loop | `runTurn` + `turn-step` 直接编排 | LoopService + Turn + StepRequest admission |
+| 状态组织 | Agent/Session 内存态加 transcript | Scope、Event/Wire、replayable state、ContextMemory |
+| 输入语义 | 直接提交到当前 turn/loop | prompt admission、FIFO、held/active/next turn |
+| 权限位置 | tool scheduler 与宿主回调 | PermissionGateService 的执行前门 |
+| Context | history append/压缩 | ContextMemory 与 durable event projection 分离 |
+| 宿主 | CLI/SDK 兼容路径 | CLI/TUI 默认、Web/server、v2 RPC |
+| 恢复模型 | session snapshot/历史文件 | Wire journal、state fold、patch/checkpoint/replay |
+
+因此 v2 不是对 v1 的局部重命名，而是把运行时的 admission、状态、权限和恢复边界重新分层。0.40.0 的迁移状态可以表示为：
+
+```text
+同一产品语义
+   ├─ v1 façade → legacy loop → legacy session/tool path
+   └─ v2 façade → Scope → admission → durable state → v2 loop
+```
+
+兼容层的存在意味着“默认使用 v2”不等于“所有调用都已经共享 v2 语义”。SDK、ACP 或旧插件如果仍通过 v1 façade 进入，可能拥有不同的 context、approval、event 和恢复边界。横向研究时，应把宿主入口和引擎版本同时记录，而不能只记录 Kimi Code 的产品版本。
+
+## 10. Scope、StepRequest、Wire 与 Replay 的关系
+
+这四个概念解决的是四个不同问题：
+
+| 概念 | 解决的问题 | 生命周期 |
+| --- | --- | --- |
+| Scope | 哪些服务和资源属于同一生命周期 | App、Session、Agent 分层 |
+| StepRequest | 用户/系统意图如何进入执行队列 | admission 到 accepted/rejected |
+| Wire | 发生过哪些可持久化运行事件 | append journal |
+| Replay | 如何从 Wire 重建当前状态 | session/agent 恢复时执行 |
+
+它们的连接不是线性调用，而是：
+
+```text
+Scope owns services
+   ↓
+StepRequest admitted by LoopService
+   ↓
+Turn/Step produces runtime effects
+   ↓
+Wire records durable facts
+   ↓
+Replay folds facts into Session/Agent state
+   ↓
+ContextMemory renders next model request
+```
+
+`StepRequest` 是控制入口，不是执行事实；Wire record 是事实，不是当前 state；Replay 是重建过程，不是另一个模型 loop；ContextMemory 是模型输入投影，不是完整历史。将这几者混为一个“Step object”会丢失 Kimi v2 最重要的架构变化。
+
+## 11. 权限和 Environment 如何进入 Step
+
+在 v2 中，Step 不应只包含 model 和 messages。一个可解释的 Step execution context 至少需要：
+
+- 所属 App/Session/Agent scope；
+- 当前 workspace、cwd、附加目录和 trust 状态；
+- 当前 model/provider 与 capability profile；
+- active tool snapshot 与动态工具加载状态；
+- permission mode、approval policy 和用户规则；
+- parent turn、request id、correlation id 和 Abort signal；
+- context projection 的版本、token budget 和 compression state。
+
+其中一部分由 Scope service 提供，一部分由 permission gate 在工具执行前读取，一部分由 ContextMemory 在请求构造时派生。v2 的价值在于这些依赖不再隐式来自全局 singleton，而是可以沿 Scope 和 StepRequest 追踪。
+
+当用户增加可信目录、切换模型或改变 approval mode 时，不应修改已经完成的 Wire record；正确语义是更新后续 Step 的 capability/policy input。若当前 Step 已经进入 executing，系统还必须决定变化是等待下一 Step 生效，还是取消/重建当前 Step。源码支持执行前 gate 和 request admission 的分层，但配置变化的原子性仍需运行实验验证。
+
+## 12. 为什么迁移期没有直接删除 v1 Runtime
+
+保留 v1 至少有四个架构原因：
+
+1. **宿主兼容**：CLI、SDK、ACP、插件和自动化脚本不可能在同一版本同时迁移所有调用协议；
+2. **行为兼容**：v1 的 tool result、session history、approval callback 和错误语义已经被产品/用户依赖；
+3. **回滚能力**：v2 是新状态模型，若出现 Wire/replay、context 或 permission 回归，legacy path 提供可用 fallback；
+4. **边界验证**：双引擎允许对相同宿主需求比较新旧实现，逐步确认 v2 的责任迁移。
+
+但双引擎也有显著成本：
+
+- 同一用户动作可能在 v1/v2 产生不同的 session、event 和 tool 行为；
+- capability、permission 和 model context 需要维护两套适配；
+- 文档和测试必须区分默认引擎、legacy flag 与 server default；
+- 迁移完成前无法把一个版本号直接等同于一套唯一 runtime。
+
+因此 v1 的保留不是单纯技术债，而是一次产品 runtime 重构中的兼容性策略；当 v2 的 Wire、Replay、Scope 和 permission gate 尚未覆盖全部宿主时，删除 v1 会把迁移风险转嫁给用户和集成方。
+
+## 13. v2 的终态收敛模型
+
+Kimi v2 的一次 Step/Turn 终态可抽象为：
+
+```text
+admitted
+  → context rendered
+  → model requested
+  → tool/policy gate
+       ├─ approval pending → resolved / denied
+       ├─ cancelled → settled
+       └─ allowed → executing
+  → effect recorded in Wire
+  → state replay/projection updated
+  → next Step or Turn terminal
+```
+
+需要同时收敛三种状态：
+
+1. **控制状态**：pending request、active turn、cancel、quiescence；
+2. **执行事实**：tool call、approval、tool result、error、usage；
+3. **读取投影**：ContextMemory、transcript、Web/SDK snapshot。
+
+如果只停止模型 stream 而没有记录 cancelled Step，Replay 可能重新认为调用仍在进行；如果只更新 transcript 而没有写 Wire，Web/ACP 恢复会丢失执行事实；如果只回滚 ContextMemory 而不保留原始 event，审计和重放会失去依据。v2 的架构价值正是为这些状态建立不同 owner，再通过事件关联它们。
+
+## 14. Kimi Code 的设计原则
+
+### 原则 1：Scope 先于服务实例
+
+对象属于 App、Session 还是 Agent，不由调用者临时决定，而由 Scope 拓扑决定。服务只能向更短生命周期创建子依赖，避免 session 状态意外泄漏到全局或 agent 资源长于所属会话。
+
+### 原则 2：Admission 与 Execution 分离
+
+用户输入先成为 StepRequest，再由 LoopService 决定进入当前、下一个或独立 Turn。这样 queue、steer、cancel 和 quiescence 可以被测试，不必混在模型调用代码中。
+
+### 原则 3：Wire 是事实，Context 是投影
+
+Wire journal 和 replayable state 负责恢复与同步；ContextMemory 负责当前模型看到什么。压缩、undo 和动态工具变化影响 projection 时，不应伪造过去的执行事实。
+
+### 原则 4：权限必须位于工具执行前门
+
+PermissionGateService 在 `onBeforeExecuteTool` 位置统一处理 policy、approval、telemetry 和环境限制。工具本身可以声明能力，但不应自行绕过统一执行门。
+
+### 原则 5：动态工具采用按需暴露
+
+常驻工具、工具 announcement、`select_tools` 和实际 registry 分层，减少每次请求都携带完整工具 schema 的成本。工具变化要能在 context/history 中解释，同时在执行时重新验证。
+
+### 原则 6：默认迁移不等于立即删除兼容路径
+
+v2 先成为默认路径，再通过 legacy flag 保留 v1，允许宿主、用户和插件逐步迁移。架构演进以行为兼容和可回滚为约束，而不是以目录清理速度为目标。
+
+### 原则 7：Runtime 状态必须可回放，UI 状态可以重建
+
+Web、CLI、ACP 和 SDK 都可以拥有自己的读取模型，但应从 Wire/session/event contract 重建。UI snapshot、stream delta 和 transient accumulator 不应成为唯一事实来源。
+
+### 原则 8：Environment 是 Scope 绑定的能力边界
+
+cwd 只是 workspace 的一个字段；真正的执行环境还包括 trust、工具、权限、模型、凭据、MCP 和恢复服务。Step 使用的环境输入必须可追踪，避免同一 session 在不同 host 中隐式获得不同能力。
+
+## 15. 设计收益与代价
+
+| 设计选择 | 收益 | 代价 |
+| --- | --- | --- |
+| App/Session/Agent Scope | 生命周期和资源 ownership 清晰 | DI/Scope 复杂度上升 |
+| StepRequest admission | 支持 queue、steer、cancel、quiescence | 输入语义需要额外状态机 |
+| Wire + Replay | 恢复、审计、多宿主同步 | journal、迁移、损坏修复复杂 |
+| ContextMemory projection | 压缩与工具按需暴露 | 事实与模型输入可能分叉 |
+| Permission Gate | 工具安全入口统一 | policy 与 environment 组合复杂 |
+| v1/v2 并存 | 兼容、回滚、渐进迁移 | 双语义、双测试、双适配成本 |
+| Scope-bound Environment | 多 workspace、多宿主 | 环境快照和跨进程接管难度高 |
+
+## 16. 研究结论的严格表述
+
+Kimi Code v0.40.0 最重要的架构事实不是“已经完成 v2 重构”，而是：v2 已经建立了比 v1 更明确的 Scope、admission、Step、permission、Wire、Replay 和 Context projection 边界，并成为主要默认路径；但 legacy v1 仍然存在于兼容面，因此产品版本仍代表一个双引擎迁移态。
+
+对于后续横向研究，Kimi 的核心问题应表述为：它如何用 Scope 和 Wire 把长期 session、逐步执行、动态 capability 与多宿主恢复连接起来；而不是简单比较它是否拥有某个名为 Session 或 Step 的类。当前报告只对 v0.40.0 做版本快照和历史节点分析，不将未来 v0.41/v2 GA 的行为提前推断为已实现。

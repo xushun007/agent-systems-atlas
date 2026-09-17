@@ -2,5 +2,22 @@ name: kimi-code
 repository: https://github.com/MoonshotAI/kimi-code
 analyzed_commit: e27ee60894d714e5844db75da69f29120a2bce43
 analyzed_version: v0.40.0
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-15
+research_document: research/kimi-code-harness-evolution.md
 current_architecture_snapshot: 2026-09-14.e27ee60
+mechanism_reviews:
+  session_turn_step_consistency:
+    analyzed_commit: e27ee60894d714e5844db75da69f29120a2bce43
+    analyzed_version: v0.40.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/01-state-ownership.md
+  input_admission:
+    analyzed_commit: e27ee60894d714e5844db75da69f29120a2bce43
+    analyzed_version: v0.40.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/02-input-admission.md
+  step_consistency:
+    analyzed_commit: e27ee60894d714e5844db75da69f29120a2bce43
+    analyzed_version: v0.40.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/03-step-consistency.md
