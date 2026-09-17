@@ -1,9 +1,21 @@
 name: opencode
 repository: https://github.com/anomalyco/opencode
 analyzed_commit: 63f7ceecbed2d7d9a627518d935dd963b9d4ac9f
+mechanism_reviews:
+  interruption_and_convergence:
+    analyzed_commit: 63f7ceecbed2d7d9a627518d935dd963b9d4ac9f
+    analyzed_version: v2.0.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/04-interruption-and-convergence.md
+  persistence_and_recovery:
+    analyzed_commit: 63f7ceecbed2d7d9a627518d935dd963b9d4ac9f
+    analyzed_version: v2.0.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/05-persistence-and-recovery.md
 analyzed_version: v2.0.0
 analyzed_commit_date: 2026-09-11
 last_reviewed: 2026-09-14
+research_document: research/opencode-harness-evolution.md
 analysis_scope: project-inception-to-v2.0.0
 history_commit_count: 21682
 historical_reference_commit: b9a39b816c92592e824c68cdc9a48acf7717e2a2

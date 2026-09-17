@@ -387,4 +387,178 @@ OpenCode→ product server + extensible Effect runtime
 - v1.0.0 的源码稀疏工作树与 v2.0.0 主工作树使用不同目录；Atlas 不保存源码副本；
 - CodeMode 的完整 sandbox、表达式解释器和 provider prompt 投影仍需单独建立机制级分析；
 - v2 中部分 `v1` compatibility/migration 文件仍然存在，不能简单推断所有 v1 API 已经从运行时完全消失；
-- Graphify 已用于当前 v2 源码的结构提取准备，但本次图谱输出未作为单独 Atlas 资产保存，模块关系结论仍以源码阅读为主。
+
+## 九、Runtime 状态所有权
+
+OpenCode v2 的核心变化可以用状态所有权来表达：
+
+| 状态 | 主要所有者 | 生命周期 | 恢复依据 |
+| --- | --- | --- | --- |
+| Location / Instance | Server/Core services | server 或 workspace 连接周期 | location identity、workspace metadata |
+| Session identity | Session service/store | 长期任务周期 | database session record |
+| Input admission | SessionInbox | 从提交到 steer/queue/消费 | inbox item 与 delivery 状态 |
+| Active execution | SessionExecution/Coordinator | 当前 session 的运行周期 | durable claim、execution events |
+| Step attempt | SessionRunner/Step | 一次模型/工具物理尝试 | step events、source order、settlement |
+| Tool effect | Tool runtime/Environment | tool call 或后台 process 周期 | tool part、PTY/process state |
+| UI projection | TUI/SDK/ACP client | client 连接周期 | protocol event 与 store reads |
+
+这说明 v2 的 Session 已经不是一个静态 transcript container，但它也不是所有状态的唯一 owner。Inbox 拥有输入接纳，Execution 拥有活动运行，Runner 拥有物理尝试，Database/Store 拥有持久事实，TUI 只拥有展示投影。这样的拆分使 client 断线、server 重启和多客户端接入成为可处理的 runtime 事件。
+
+## 十、Session → Inbox → Execution → Step 的完整流程
+
+```text
+client prompt / shell / compact / synthetic input
+        ↓
+SessionPrompt.prepare
+        ↓
+SessionInbox.admit
+        ├─ steer current execution
+        └─ queue next execution
+        ↓
+SessionExecution.wake
+        ↓
+RunCoordinator claims session
+        ↓
+SessionRunner.drain
+        ↓
+Step attempt
+  → build context and tool projection
+  → open model stream
+  → start tool fibers
+  → await results / interrupt / overflow
+  → persist parts and settlement
+        ↓
+next step, compact, wait, or terminal
+```
+
+这个流程与 v1 的直接 `SessionPrompt → model stream` 有本质差别：输入在进入模型前有一个可持久化的 admission 边界；执行前有 session claim；物理尝试有自己的 settlement；客户端不再决定 session 是否继续运行。
+
+## 十一、Inbox、Steer 与 Interrupt 的时序
+
+OpenCode v2 把用户输入视为带 delivery 语义的控制项，而不是无条件追加 user message：
+
+| 输入/控制 | 作用范围 | 典型结果 |
+| --- | --- | --- |
+| steer | 当前 active execution | 注入当前执行可消费的方向变化 |
+| queue | 当前 execution 之后 | 等待当前 run 终态后启动下一步 |
+| compact | session context | 生成新的 context projection |
+| shell completion | 当前/下一 execution | 把外部执行结果重新放回 session |
+| interrupt | execution/step/tool | 中止流、工具 fiber 或等待状态 |
+
+审批、权限变化和 session replacement 也必须经过同一执行边界处理。一个已经开始的 Step 不能因为 client 发来新设置就静默改变过去的 tool effect；新的 policy 应作用于后续 tool call，或明确触发当前 attempt 的取消和重建。
+
+## 十二、Step、Tool Effect 与 Environment
+
+OpenCode v2 的 Step 更接近“物理尝试”，而不是单纯的模型 response。它至少关联：
+
+- session、location、instance 和 workspace；
+- provider/model、prompt projection 和 active tool set；
+- permission decision、environment policy 和 tool fibers；
+- source order、interrupt signal、retry/overflow reason；
+- durable parts、tool result、usage 和 terminal settlement。
+
+Environment 可以定义为：
+
+> Location/Instance 所绑定的 workspace、filesystem、shell、PTY、MCP、provider、permission 和后台进程能力的有效组合。
+
+这比 v1 的 `Instance(directory)` 强，但 OpenCode v2 的 Environment 仍偏向 location/service 组合，而不是 Codex 式的 immutable environment policy snapshot。用户切换 location、worktree、permission 或 plugin generation 后，后续 Step 的能力可以变化；研究上需要区分“同一 Session”与“同一 Environment”。
+
+## 十三、失败、恢复与终态收敛
+
+OpenCode v2 的失败路径可分为：
+
+1. **admission failure**：输入未能进入 inbox，不应被误记为模型失败；
+2. **execution claim failure**：另一个进程拥有 session，当前进程必须等待或接管；
+3. **model/stream failure**：Step 可 retry、compact 或终止；
+4. **tool/process failure**：记录 tool effect 和 error，避免丢失已发生的副作用；
+5. **interrupt**：取消当前 Step/执行，但保留 session 和已持久化事实；
+6. **host failure**：TUI/SDK 断线不应自动删除 server-owned execution；
+7. **restart recovery**：依据未释放 claim、inbox item 和 session events 重新唤醒执行。
+
+至少需要满足以下不变量：
+
+- 已 admit 的 input 不能在 client 断线后无声消失；
+- session 不能被两个 execution owner 同时推进；
+- 已完成 tool effect 不能因为模型 retry 被当作从未发生；
+- interrupt 后不能继续发送隐式 model continuation；
+- transient stream 可以丢失，但 durable parts 和 settlement 必须可读取；
+- server 重启后只能依据 durable claim/event 恢复，不依赖 TUI 内存。
+
+这些不变量解释了 v2 为什么需要 Database、Bus、Execution claim、Inbox 和 Runner 的组合，而不是仅仅把 v1 的 SessionPrompt 拆成更多文件。
+
+## 十四、动态能力、Plugin 与 Code Mode
+
+OpenCode 的能力平面至少有三个层次：
+
+```text
+MCP / built-in / plugin / skill sources
+              ↓
+capability registry and generations
+              ↓
+tool catalog / CodeMode namespace / model projection
+              ↓
+permission + environment gate
+              ↓
+tool effect / interpreter / process
+```
+
+插件 generation、MCP updates 和 CodeMode catalog 的变化可能影响未来 Step 的 tools schema、instructions 和执行器，但不应修改已经 settlement 的 Step。CodeMode 的意义也不是简单“把工具塞进 prompt”：它把大量工具压缩为可查询的 namespace/catalog，再由模型或解释器按需选择，从而降低常驻 schema 成本。
+
+这对 KV cache 的判断仍应保持谨慎：如果 plugin generation、tools schema 或 instructions 改变 provider request 前缀，缓存命中可能下降；如果只在本地 permission gate 拒绝调用，则不一定改变请求。OpenCode 当前源码支持 capability projection 与 runtime generation 的分层，但 provider 实际 cache key 仍需请求录制实验。
+
+## 十五、OpenCode 的设计原则
+
+### 原则 1：Session 是可执行控制面，不只是历史记录
+
+Session 同时拥有输入 admission、执行唤醒、等待、resume、shell、compact 和 client-facing reads。它把长期任务的控制操作集中在服务边界中，而不是让 TUI 直接驱动模型。
+
+### 原则 2：输入先 admission，执行后发生
+
+Prompt、steer、queue、compact 和 synthetic input 先成为 inbox item，再由 coordinator 决定何时消费。这样连续输入、重启和多 client 才有明确顺序。
+
+### 原则 3：Database/Store 是事实，Bus/Projection 是传播和读取
+
+执行器写入数据库事实，Bus 发布变化，Store 提供读取投影，客户端消费协议。UI 状态可以刷新和重建，不能作为 session execution 的唯一来源。
+
+### 原则 4：物理 Step 必须有 settlement
+
+模型 stream、工具 fibers、retry、overflow、interrupt 和最终结果都属于一次 physical attempt。Step 结束时必须明确成功、失败、取消或重试，不留下可被重启误认的 active 状态。
+
+### 原则 5：Tool capability 与 tool effect 分离
+
+模型看到的工具目录、权限决策、实际执行器和产生的副作用分别建模。这样 MCP、插件和 CodeMode 可以扩展声明面，同时由 Permission/Environment 约束执行面。
+
+### 原则 6：Server 拥有执行，Client 拥有投影
+
+TUI、SDK、ACP 和 Desktop 都是 client。server/core 负责 session、execution、workspace、tool 和恢复；client 断线不应等于任务结束。
+
+### 原则 7：Location 是运行时作用域，cwd 只是其中一个字段
+
+workspace、worktree、PTY、MCP、filesystem、permission 和后台进程都属于 location/instance 相关环境。Session 的目录选择不能替代完整 environment ownership。
+
+### 原则 8：Effect service 用显式依赖换取可替换运行时
+
+Database、Bus、Instance、Execution、Runner、Permission、Tool、LLM 和 Snapshot 作为 service 组合，允许测试、替换 backend 和多 host 接入。代价是依赖图、Scope、Fiber 和错误边界需要专业治理。
+
+### 原则 9：兼容迁移优先于一次性重写
+
+v1/v2 双轨让 UI、SDK、plugin 和 server 能逐步迁移，但版本号不能自动代表唯一 runtime 语义。迁移层需要明确 adapter、feature gate 和行为差异。
+
+## 十六、原则带来的收益与代价
+
+| 设计选择 | 收益 | 代价 |
+| --- | --- | --- |
+| Session execution service | 长任务、断线恢复、后台运行 | claim/lease 和终态复杂 |
+| Inbox admission | steer、queue、重放顺序明确 | 输入优先级和过期语义复杂 |
+| Effect service | 依赖可替换、边界显式 | 学习成本和组合复杂度高 |
+| Database + projection | 多客户端读取、重建、查询 | schema/migration/一致性成本 |
+| Physical Step settlement | retry、interrupt、恢复可解释 | attempt 状态和副作用协调复杂 |
+| Plugin generation | 动态扩展和 live update | capability/context/cache 漂移风险 |
+| CodeMode catalog | 大规模工具更适合模型消费 | 目录、解释器、权限边界更复杂 |
+| Server-owned execution | client 不阻塞任务 | 远程认证、重连、运维成本 |
+
+## 十七、OpenCode 的最终定位
+
+OpenCode v2 的核心不是“更换了 TUI”或“使用了 Effect”，而是将一个 coding task 变成 server-owned、可 admission、可恢复、可被多客户端观察的 Session Execution。TUI 只是最早的产品 surface；真正的 harness 是 Location/Instance、SessionInbox、SessionExecution、Runner/Step、Database/Store、Permission/Environment 和动态 capability plane 的组合。
+
+它与 Codex 的差异在于：OpenCode 更强调产品 Server、Effect service、插件生态和 CodeMode；Codex 更强调单次 Step 的环境/权限一致性和 rollout 事实。它与 Pi 的差异在于：OpenCode 更早把 session server、数据库和多客户端协议推入核心；Pi 更强调可复用 durable procedure。OpenCode 的最大架构收益是多入口产品化，最大代价是输入、执行、插件、环境和投影之间的状态协调。
