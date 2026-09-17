@@ -3,3 +3,29 @@ repository: https://github.com/openai/codex
 analyzed_commit: ee6814bfa4889fe9b2b3dcc9cc8bdd91effa8ab8
 last_reviewed: 2026-09-12
 current_architecture_snapshot: 2026-09-12.ee6814b
+mechanism_reviews:
+  session_turn_step_consistency:
+    analyzed_commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
+    analyzed_version: rust-v0.154.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/01-state-ownership.md
+  input_admission:
+    analyzed_commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
+    analyzed_version: rust-v0.154.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/02-input-admission.md
+  step_consistency:
+    analyzed_commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
+    analyzed_version: rust-v0.154.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/03-step-consistency.md
+  interruption_and_convergence:
+    analyzed_commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
+    analyzed_version: rust-v0.154.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/04-interruption-and-convergence.md
+  persistence_and_recovery:
+    analyzed_commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
+    analyzed_version: rust-v0.154.0
+    reviewed_at: 2026-09-16
+    document: ../../comparisons/session-turn-step-consistency/05-persistence-and-recovery.md
