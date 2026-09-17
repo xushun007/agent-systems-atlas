@@ -1,0 +1,15 @@
+name: openhands
+repository: https://github.com/OpenHands/OpenHands
+upstream_ref: v1.15.0
+upstream_ref_url: https://github.com/OpenHands/OpenHands/tree/v1.15.0
+analyzed_commit: ab23be62ad724fe83483036a0900bed7b7859166
+analyzed_version: v1.15.0
+last_reviewed: 2026-09-15
+research_document: research/openhands-harness-evolution.md
+source_materialization: shallow-git-checkout
+git_history_status: 685-commit-shallow-history
+runtime_boundary: OpenHands/OpenHands is Agent Canvas frontend; backend runtime is OpenHands/software-agent-sdk
+backend_repository: https://github.com/OpenHands/software-agent-sdk
+backend_ref: v1.15.0
+backend_commit: 3635cda1d62f961e8d6a4f5a8f05a3aaa72d8ad2
+backend_history_status: blobless clone with v1.15.0 source and runtime tests selectively materialized
