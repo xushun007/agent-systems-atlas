@@ -28,23 +28,23 @@ Coding Agent 的扩展机制，不只是“增加几个工具”。它改变的�
 ## 文章计划
 
 1. **[扩展模型：Tool、Skill、Plugin 与 MCP 的责任边界](01-extension-model-and-boundaries.md)**
-   
+
    区分指令扩展、工具扩展、协议扩展和运行时扩展，建立统一生命周期模型。
 
 2. **[动态能力如何进入 Runtime：注册、发现与 Context](02-registration-discovery-and-context.md)**
-   
+
    研究 Tool Registry、schema、Skill instructions、Prompt 注入、Session/Turn/Step 边界，以及动态能力对模型请求和缓存的影响。
 
 3. **[扩展的进程边界与 Environment 权限](03-process-boundary-and-environment.md)**
-   
+
    研究本地 Plugin、MCP Server、子 Agent、远程 Connector 的进程和权限边界，重点分析 Workspace、Network、Secret 和审批如何传播。
 
 4. **[扩展生命周期：版本、失败、恢复与卸载](04-extension-lifecycle-and-recovery.md)**
-   
+
    研究扩展配置与 Runtime 状态的所有权、热更新、兼容性、失败收敛、取消和恢复。
 
 5. **[Capability Plane：从工具注册到可治理能力](05-capability-plane.md)**
-   
+
    综合比较各 Agent 是否形成独立的 Capability Plane，并分析它与 Policy、Approval、Environment、Observability 的关系。
 
 专题已完成初步研究范围。后续如有新增源码证据，优先更新对应 Agent 的固定版本引用或补充实验记录，不再扩张为概念性文章。

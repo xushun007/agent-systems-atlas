@@ -27,23 +27,23 @@ Coding Agent 的可观测性，不只是把日志写到文件；Evaluation 也�
 ## 文章计划
 
 1. **[事实、事件与观察：Coding Agent 应记录什么](01-facts-events-and-observations.md)**
-   
+
    区分 Event、Log、Trace、Projection、Model output 和 Runtime fact，建立可重建的记录边界。
 
 2. **[Trace 的层级：Session、Turn、Step、Tool Call 与 Operation](02-trace-hierarchy-and-correlation.md)**
-   
+
    研究运行链路、父子关系、并发调用、子 Agent、远程 Operation 和失败恢复的关联模型。
 
 3. **[Trajectory、Checkpoint 与 Replay](03-trajectory-checkpoint-and-replay.md)**
-   
+
    区分对话轨迹、状态快照、恢复检查点和可重放请求，分析哪些状态能重建、哪些副作用只能查询。
 
 4. **[Coding Agent 的 Evaluation：从任务完成到执行质量](04-evaluation-and-quality-model.md)**
-   
+
    建立任务成功、代码正确性、工具效率、恢复能力、成本和安全性的评价模型。
 
 5. **[在线 Observability 与离线 Evaluation 的闭环](05-observability-evaluation-loop.md)**
-   
+
    研究 Trace、Dataset、Replay、反馈和版本比较如何形成闭环，以及数据脱敏和样本可比性问题。
 
 ## 研究方法
