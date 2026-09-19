@@ -1,0 +1,13 @@
+{
+  "commit": "e27ee60894d714e5844db75da69f29120a2bce43",
+  "node": "v26.5.0",
+  "scope": "Original StepRequest and StepRequestQueue only; no AgentLoopService, model, UI, or persistence",
+  "events": [
+    { "event": "enqueue", "requestState": "pending", "pending": true },
+    { "event": "take-batch", "requestState": "pending", "pending": false },
+    { "event": "explicit-materialization", "requestState": "materialized", "abortAccepted": false },
+    { "event": "abort-pending", "requestState": "aborted", "returnedByQueue": false },
+    { "event": "merge", "driverCount": 1, "mergedCount": 1, "states": ["pending", "pending"] }
+  ],
+  "success": true
+}
