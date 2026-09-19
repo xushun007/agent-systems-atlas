@@ -2,6 +2,7 @@ name: claude-code
 repository: https://github.com/freestylefly/claude-code
 analyzed_commit: 6e2f79c5b97ae619172a3e621e87dd0edb220619
 analyzed_ref: leaked-source snapshot; no official tag
-last_reviewed: 2026-09-15
+last_reviewed: 2026-09-18
+current_architecture_snapshot: 2026-09-18.6e2f79c
 provenance: third-party public repository described as a leaked Claude Code source backup; not an official Anthropic release
 research_document: research/claude-code-harness-evolution.md
