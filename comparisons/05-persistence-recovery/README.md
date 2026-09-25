@@ -42,10 +42,11 @@ Failure        让未完成操作进入可解释、可继续或可停止的终�
 2. [持久化模型与恢复边界](02-persistence-and-recovery-boundaries.md)——说明哪些状态必须落盘，哪些状态可以重建，以及 checkpoint 为什么不是 transcript 的别名。
 3. [Replay、Retry 与副作用一致性](03-replay-retry-and-effects.md)——区分状态重放、模型重试、工具重试和 effect reconciliation，解释 exactly-once 的端到端边界。
 4. [Failure Recovery 与终态收敛](04-failure-recovery-and-convergence.md)——建立统一恢复状态机，讨论中断、崩溃、审批等待、后台任务和责任接管。
+5. [DeepSeek Harness：事件事实、单写者持久化与 unknown effect](deepseek-harness.md)——补充事件溯源和语义 checkpoint 的具体实现。
 
 ## 研究范围
 
-本文专题比较 Codex、Pi、OpenCode、OpenHands、Gemini CLI、Kimi Code 和 mini-SWE-agent 中与事件、持久化、重放和恢复有关的 Runtime 机制。各项目的结论基于已记录版本的源码和测试阅读，源码链接固定到对应 commit。
+本文专题比较 Codex、Pi、OpenCode、OpenHands、Gemini CLI、Kimi Code、mini-SWE-agent 和 DeepSeek Harness 中与事件、持久化、重放和恢复有关的 Runtime 机制。各项目的结论基于已记录版本的源码和测试阅读，源码链接固定到对应 commit。
 
 比较的对象不是数据库技术本身，而是 Agent Runtime 如何回答以下问题：
 

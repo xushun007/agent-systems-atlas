@@ -23,6 +23,7 @@
 ## 研究材料
 
 - [版本与证据索引](evidence.md)
+- [DeepSeek Harness：显式 Turn/Step、durable inbox 与请求冻结](deepseek-harness.md)
 - [Kimi 请求状态与队列边界实验](../../experiments/session-turn-step-consistency/kimi-admission/README.md)
 - [Pi 执行中输入的可见性实验](../../experiments/session-turn-step-consistency/pi-input-boundaries/README.md)
 - [跨项目 Runtime 总报告](../coding-agent-harness-runtime-synthesis.md)

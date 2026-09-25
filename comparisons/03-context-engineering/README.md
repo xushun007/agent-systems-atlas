@@ -21,3 +21,7 @@ document_type: mechanism-series
 2. [Compaction、Summary 与信息损失](02-compaction-summary-information-loss.md)
 3. [Tool Results、Observations 与 Memory](03-tool-results-observations-memory.md)
 4. [Branch、Replay 与 Model Switch 一致性](04-branch-replay-model-switch-consistency.md)
+
+## 项目补充
+
+- [DeepSeek Harness：作用域组装、Session surface 与请求冻结](deepseek-harness.md)

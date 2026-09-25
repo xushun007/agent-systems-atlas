@@ -29,3 +29,7 @@ document_type: mechanism-series
 4. [状态投影与一致性](04-state-projections-and-consistency.md)
 
 本专题四篇文章已完成。
+
+## 项目补充
+
+- [DeepSeek Harness：事实、控制、能力与投影状态](deepseek-harness.md)

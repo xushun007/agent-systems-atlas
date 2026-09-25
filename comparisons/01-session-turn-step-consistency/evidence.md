@@ -1,6 +1,6 @@
 # 版本与证据索引
 
-复核日期：2026-09-16。适用范围：[第一篇：状态所有权与执行边界](01-state-ownership.md)、[第二篇：输入接纳、排队与生效边界](02-input-admission.md)、[第三篇：Step 一致性](03-step-consistency.md)、[第四篇：中断与终态收敛](04-interruption-and-convergence.md)、[第五篇：持久化与恢复](05-persistence-and-recovery.md)。
+复核日期：2026-09-21。适用范围：[第一篇：状态所有权与执行边界](01-state-ownership.md)、[第二篇：输入接纳、排队与生效边界](02-input-admission.md)、[第三篇：Step 一致性](03-step-consistency.md)、[第四篇：中断与终态收敛](04-interruption-and-convergence.md)、[第五篇：持久化与恢复](05-persistence-and-recovery.md)，以及 [DeepSeek Harness 项目补充](deepseek-harness.md)。
 
 本文档维护证据范围，不作为单项目架构快照，也不修改已有快照的版本归属。
 
@@ -13,6 +13,7 @@
 | mini-SWE-agent | `v2.4.5-2-g38c01a1`，沿用已有研究的历史标识，不冒充发布 tag | `38c01a19ed1a58dd17dd7c95010e4f69d059c777` |
 | Pi | `v0.85.1`，第二篇限于底层 Agent 与 loop，不扩展到 v4 durable harness | `d981de1229ef899957bbe968bc8dcda02a21f477` |
 | OpenCode | `v2.0.0` | `63f7ceecbed2d7d9a627518d935dd963b9d4ac9f` |
+| DeepSeek Harness | `dsh-v0.1.5-rc.2` | `fb2c4b9e698e30edb738bca4cf0618587db7d203` |
 
 本地 HEAD 均已核对。针对正文所引用的实现与测试文件执行 `git diff --exit-code HEAD -- <files>`，未发现偏离 HEAD 的修改。上游其他已有工作区修改与本研究无关，保留原状。
 
@@ -29,6 +30,7 @@ Codex 的 `project.yaml` 原有 `analyzed_commit` 属于此前架构快照；本
 | Kimi 实际物化时先追加 context，再改变请求状态 | [materializeRequest](https://github.com/MoonshotAI/kimi-code/blob/e27ee60894d714e5844db75da69f29120a2bce43/packages/agent-core-v2/src/agent/loop/loopService.ts#L818-L832) | 已读源码；轻量实验没有执行此函数 |
 | Kimi 测试规定排队 Turn 可在未开始、未应用初始消息时撤回 | [loop.test.ts](https://github.com/MoonshotAI/kimi-code/blob/e27ee60894d714e5844db75da69f29120a2bce43/packages/agent-core-v2/test/agent/loop/loop.test.ts#L794-L819) | 已读测试；本地收集失败，运行测试数为零 |
 | mini 默认 Step 组合 query 与 actions，Agent 持有消息及执行依赖 | [default.py](https://github.com/SWE-agent/mini-swe-agent/blob/38c01a19ed1a58dd17dd7c95010e4f69d059c777/src/minisweagent/agents/default.py) | 已读实现和[确定性模型测试](https://github.com/SWE-agent/mini-swe-agent/blob/38c01a19ed1a58dd17dd7c95010e4f69d059c777/tests/agents/test_default.py)；未运行 |
+| DeepSeek Harness 以持久事件明确 Turn/Step，并从 durable inbox 投影待处理输入 | [`ReactLoopAgent.turn()`](https://github.com/deepseek-ai/deepseek-harness/blob/fb2c4b9e698e30edb738bca4cf0618587db7d203/packages/core/agent-loop/src/agent.ts#L269-L349)、[`inbox.ts`](https://github.com/deepseek-ai/deepseek-harness/blob/fb2c4b9e698e30edb738bca4cf0618587db7d203/packages/core/agent-loop/src/inbox.ts#L1-L75) | 已读源码与测试目录；未运行真实模型或恢复实验 |
 
 实验脚本、步骤、结果及失败信息见 [Kimi 实验记录](../../experiments/session-turn-step-consistency/kimi-admission/README.md)。
 
@@ -58,6 +60,7 @@ Pi 的七场景完整产物见 [results.json](../../experiments/session-turn-ste
 | OpenCode 用持久 claim 发现未结算执行，shutdown 保留 claim、用户中断释放 claim | [execution service](https://github.com/anomalyco/opencode/blob/63f7ceecbed2d7d9a627518d935dd963b9d4ac9f/packages/core/src/session/execution.ts#L70-L185)、[tests](https://github.com/anomalyco/opencode/blob/63f7ceecbed2d7d9a627518d935dd963b9d4ac9f/packages/core/test/session-execution.test.ts#L79-L146) | 源码与上游测试阅读 |
 | Pi v4 恢复 assistant generation 时补写恢复终态，不重新调用 provider；工具只有 replay-safe 条件满足时才重放 | [recovery](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/agent/src/harness/runtime/drive/recovery.ts)、[tool recovery](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/agent/src/harness/runtime/drive/tools.ts#L515-L543) | 源码与上游测试阅读 |
 | Pi JSONL storage 丢弃无换行撕裂尾部，但拒绝换行结束的内部损坏行 | [JSONL storage](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/agent/src/harness/session/jsonl/storage.ts#L90-L290)、[storage tests](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/agent/test/harness/jsonl-storage.test.ts#L258-L341) | 源码与上游测试阅读 |
+| DeepSeek Harness 在请求/顶层工具副作用前设置持久屏障，恢复时将无结果工具调用标记为 unknown | [`session-checkpoint-policy`](https://github.com/deepseek-ai/deepseek-harness/blob/fb2c4b9e698e30edb738bca4cf0618587db7d203/packages/session/session-checkpoint-policy/src/index.ts#L50-L89)、[`repair.ts`](https://github.com/deepseek-ai/deepseek-harness/blob/fb2c4b9e698e30edb738bca4cf0618587db7d203/packages/core/session/src/repair.ts#L78-L133) | 源码与硬崩溃测试阅读；本次未运行测试 |
 
 第三至第五篇的实验边界是刻意保守的：没有 API key 也可以验证底层顺序和 JSONL 撕裂处理，但本次正文只把已经核对的源码/测试作为依据，未把真实 provider、shell 进程或服务重启写成已实测事实。
 

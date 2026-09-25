@@ -21,3 +21,7 @@ document_type: mechanism-series
 2. [Workspace、Sandbox 与 Policy](02-workspace-sandbox-policy.md)
 3. [后台、远程与多 Agent 执行](03-background-remote-multi-agent.md)
 4. [Recovery、Rollback 与外部 Effects](04-recovery-rollback-effects.md)
+
+## 项目补充
+
+- [DeepSeek Harness：能力 seam、执行世界与恢复边界](deepseek-harness.md)

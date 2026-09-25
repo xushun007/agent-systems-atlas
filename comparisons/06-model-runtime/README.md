@@ -33,3 +33,7 @@ document_type: mechanism-series
 4. [Provider 故障、成本预算与模型路由](04-provider-failure-routing-and-budget.md)
 
 本专题四篇文章已完成。
+
+## 项目补充
+
+- [DeepSeek Harness：路由准备、请求冻结与流 settlement](deepseek-harness.md)

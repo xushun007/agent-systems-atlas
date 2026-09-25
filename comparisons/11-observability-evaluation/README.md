@@ -74,9 +74,12 @@ Coding Agent 的可观测性，不只是把日志写到文件；Evaluation 也�
 - Kimi Code：Task persistence、Agent Run、Tool Policy、Subagent 和状态投影；
 - mini-SWE-agent：trajectory、submit sentinel、Environment output 和最小任务评价；
 - ADK Python：Event、Invocation、Session、Runner、Callback 和应用级评估。
+- DeepSeek Harness：Session event facts、实时 Agent events、projection、snapshot 与 crash-recovery tests。
 
 ## 当前限制
 
 本专题研究 Runtime 事实与评估机制，不把日志平台或通用 APM 当作核心答案。涉及状态事实时引用 [Agent State](../08-agent-state/README.md)；涉及扩展来源和能力身份时引用 [Extension / Plugin Architecture](../10-extension-plugin-architecture/README.md)。真实在线指标、Provider 缓存命中、成本账单和部署级采样策略需要运行实验或服务端数据，不能仅凭客户端源码推断。
 
 专题已完成初步研究范围。后续如有新增源码证据，优先补充固定版本引用和实验记录，不再扩张为概念性文章。
+
+项目补充：[DeepSeek Harness：持久事实、实时观察与评价边界](deepseek-harness.md)。

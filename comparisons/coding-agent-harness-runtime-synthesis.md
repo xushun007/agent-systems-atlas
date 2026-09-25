@@ -2,7 +2,7 @@
 
 ## 研究范围
 
-本文基于 Atlas 中 12 个 coding agent / agent runtime 的固定版本研究，提炼它们从模型循环走向产品级 Harness 的共同规律与结构差异：
+本文基于 Atlas 中 13 个 coding agent / agent runtime 的固定版本研究，提炼它们从模型循环走向产品级 Harness 的共同规律与结构差异：
 
 - [Codex](../projects/codex/research/codex-harness-evolution.md)：`rust-v0.154.0`；
 - [Pi](../projects/pi/research/pi-harness-evolution.md)：`v0.85.1`；
@@ -16,6 +16,7 @@
 - [Google ADK Python](../projects/adk-python/research/adk-python-harness-evolution.md)：`v2.8.0`；
 - [Navi Agent](../projects/navi-agent/research/navi-agent-v0.1-harness.md)：`v0.1.0`；
 - [mini-SWE-agent](../projects/mini-swe-agent/research/mini-swe-agent-harness-evolution.md)：`v2.4.5` 之后的维护版本。
+- [DeepSeek Harness](../projects/deepseek-harness/research/deepseek-harness-evolution.md)：`dsh-v0.1.5-rc.2`。
 
 这不是简单的功能清单或产品排名。比较对象是 Runtime/Harness：模型请求周围负责输入接纳、上下文构造、工具能力、权限、执行环境、持久化、恢复、宿主连接和终态收敛的系统。
 
@@ -305,7 +306,7 @@ OpenHands 与 OpenCode 的 backend/server 化最彻底；Codex 和 Cline 也将�
 
 这时 Agent Loop 只是 Runtime 的一个执行部件。Codex、Pi、Gemini、OpenCode、OpenHands 和 Kimi v2 代表不同方向；Hermes 仍保留中心 AIAgent；ADK 以 Workflow graph 为中心；Cline/Claude Code 的产品化形态则更多围绕 task/session/host 组合。
 
-## 六、12 个系统的架构定位
+## 六、13 个系统的架构定位
 
 ### Codex：一致性优先的 Coding Execution Runtime
 
@@ -385,6 +386,12 @@ mini-SWE-agent 只保留 Agent、Model、Environment、messages、limits、traje
 
 它的价值不在功能少，而在提供因果清晰的控制组：其它系统每增加一层，都必须说明是在解决长上下文、持续输入、权限、恢复、并发、远程化还是产品运维问题。
 
+### DeepSeek Harness：插件组合与事件事实双核心
+
+DeepSeek Harness 以 Cordis 插件树组织整个 Runtime：profile/bundle/patch 决定进程级部署，preset/scope 决定单个 Agent 可见的 Prompt、工具和策略，`AgentRegistry`/`AgentLoop` 驱动执行。它没有把扩展限制在外围 Tool API，而是让模型、Session、Loop、审批和 Environment provider 都成为可替换服务。
+
+其另一核心是 Session event log。Turn、Step、请求头、Assistant settlement 与工具结果构成可重建事实；模型请求从日志派生并冻结，实时 stream 只是观察事件。语义 checkpoint 在模型 dispatch 和顶层工具副作用前刷盘；崩溃后未知工具效果被显式标记，而不是自动重试。代价是插件装配、作用域、事件词汇、格式迁移和 projection 都成为 Runtime 正确性的一部分。
+
 ## 七、核心维度比较矩阵
 
 | 系统 | 主要事实 | Step/执行粒度 | Environment owner | 恢复模型 | 主要扩展方式 |
@@ -401,6 +408,7 @@ mini-SWE-agent 只保留 Agent、Model、Environment、messages、limits、traje
 | ADK | Session events/state | Invocation/node/step | CodeExecutor/services | event replay、resumability | Workflow、plugins、A2A |
 | Navi | Session/Run/Event records | iteration/tool call | runtime/backend composition | interaction/session recovery | services、gateway、evolution |
 | mini | messages/trajectory | query/action batch | Environment backend | trajectory audit，非原生 resume | config/factory/backend |
+| DeepSeek Harness | Session event log + projections | explicit Turn/Step/tool call | scoped FS/Shell/Subprocess/Sandbox providers | write handle、flush、repair、format migration | Cordis plugin、profile、preset、capability seam |
 
 ## 八、最重要的结构差异
 
@@ -413,6 +421,7 @@ mini-SWE-agent 只保留 Agent、Model、Environment、messages、limits、traje
 - ADK：Session 拥有应用交互身份，Invocation/Workflow 拥有当前运行；
 - Navi：Session 与 Run 已分离，但 v0.1 恢复边界较早；
 - mini：一次 run/trajectory 近似全部任务身份。
+- DeepSeek Harness：SessionId 同时标识持久 Session 与活跃 Agent；Registry 生命周期和 storage ownership 分离。
 
 ### 2. 谁拥有执行环境
 
@@ -423,6 +432,7 @@ mini-SWE-agent 只保留 Agent、Model、Environment、messages、limits、traje
 - Pi/Hermes/Navi：环境是可替换 backend 与 session/task context 的组合；
 - ADK：CodeExecutor 是应用工具的执行后端，不天然拥有 repo workspace；
 - mini：Environment 只拥有命令执行和隔离 backend。
+- DeepSeek Harness：Environment 由作用域化 FS、Shell、Subprocess 与 Sandbox providers 组合；`cwd` 只是 Session 元数据。
 
 ### 3. 谁拥有模型上下文
 
@@ -600,6 +610,7 @@ Environment 是某个 Session/Turn/Step 在特定时间可访问的 workspace、
 - Hermes 选择更宽的个人 Agent platform，coding 是其中一个重要 profile；
 - ADK 是通用应用编排基础，不应被误判为完整 coding execution product；
 - mini 是研究和评测控制组，刻意不承担产品 runtime 复杂度。
+- DeepSeek Harness 把插件组合与事件溯源同时提升为核心机制，技术抽象很强；其产品可靠性取决于 profile/preset 组合与事件迁移能否持续保持一致。
 
 ## 十六、最终判断
 

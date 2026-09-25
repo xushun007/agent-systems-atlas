@@ -71,7 +71,10 @@ Coding Agent 的扩展机制，不只是“增加几个工具”。它改变的�
 - Kimi Code：Tool Policy、Connector、Subagent 和 Runtime Service；
 - OpenHands：Agent skill、微服务、Remote Runtime 和 Connector；
 - ADK Python：Tool、Plugin、Callback、Runner 和应用编排边界。
+- DeepSeek Harness：Cordis 插件树、profile/bundle/preset、作用域注册和 capability seam。
 
 ## 当前限制
 
 本专题首先研究扩展进入 Runtime 的机制，不把供应链安全、独立的安全专题和完整的可观测性专题重复展开。涉及权限传播时，引用 [Security / Trust Boundary](../09-security-trust-boundary/README.md)；涉及 Event、Trace 和 Evaluation 时，引用 [Observability / Evaluation](../11-observability-evaluation/README.md)。
+
+项目补充：[DeepSeek Harness：一切皆插件与作用域化 Capability Plane](deepseek-harness.md)。

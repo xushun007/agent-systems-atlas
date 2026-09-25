@@ -5,6 +5,8 @@
 ## 综合研究
 
 - [主流 Coding Agent Harness / Runtime 全面总结与比较](coding-agent-harness-runtime-synthesis.md)
+- [Coding Agent 中的 Agent 与 Runtime：职责边界和代码落点](agent-vs-runtime.md)
+- [DeepSeek Harness 固定版本研究](../projects/deepseek-harness/research/deepseek-harness-evolution.md)已纳入综合报告、三层架构对比及以下 11 个机制专题。
 
 ## 机制专题
 

@@ -27,3 +27,7 @@ document_type: mechanism-series
 3. [Sandbox、Workspace、Network 与 Secret 隔离](03-sandbox-workspace-network-and-secrets.md)
 
 本专题暂收束为三篇。后续不再通过增加概念性文章扩张范围，而是针对这三篇补充固定版本源码证据和可复现实验，重点验证权限是否真正落到执行边界、隔离是否能阻止越界、以及取消和恢复后资源是否收敛。
+
+## 项目补充
+
+- [DeepSeek Harness：作用域能力、fail-closed 审批与隔离边界](deepseek-harness.md)

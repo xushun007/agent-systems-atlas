@@ -29,3 +29,7 @@ document_type: mechanism-series
 4. [计划恢复与任务验收](04-plan-recovery-and-acceptance.md)
 
 本专题四篇文章已完成。
+
+## 项目补充
+
+- [DeepSeek Harness：计划边界与三种子 Agent 所有权模式](deepseek-harness.md)
