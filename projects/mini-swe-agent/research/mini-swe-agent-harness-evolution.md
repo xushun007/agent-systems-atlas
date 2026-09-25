@@ -21,6 +21,8 @@ mini-SWE-agent 的架构核心是三个可替换对象：`Agent`、`Model`、`En
 
 它的关键不是“少几个类”，而是主动拒绝产品化状态：没有中心化 session service、没有独立 tool registry、没有跨 turn permission plane、没有 context graph。一次运行的权威状态就是 `messages` 加上 `model/env/config`，trajectory 是运行结束时的可审计产物。因此 mini-SWE-agent 非常适合做 harness 基线：可以直接观察 coding agent 最小闭环哪些部分是必要的，哪些是 Codex/Cline/Gemini 为产品体验增加的层。
 
+配套架构图：[mini-SWE-agent Runtime Architecture v2.4.5](../diagrams/mini-swe-agent-runtime-architecture-v2.4.5-38c01a1.excalidraw)。
+
 ## Runtime 图
 
 ```text

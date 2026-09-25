@@ -4,6 +4,8 @@
 
 这里的 Harness 指模型调用周围的运行时，而不是模型本身：输入队列与中断、提示词和工具 schema、provider 路由、工具执行与审批、执行环境、上下文压缩、Session 恢复、宿主集成和可观测回调。
 
+配套架构图：[Hermes Agent Runtime Architecture v2026.8.31](../diagrams/hermes-agent-runtime-architecture-v2026.8.31-29112bef.excalidraw)。
+
 ## 研究基线与证据范围
 
 - 代码基线：[`v2026.8.31`](https://github.com/NousResearch/hermes-agent/tree/29112bef099274229cadff79cdff7bf7b99c4b77)，对应提交 `29112bef099274229cadff79cdff7bf7b99c4b77`，发布为 Hermes Agent `v0.21.0`。

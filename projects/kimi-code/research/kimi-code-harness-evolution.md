@@ -14,6 +14,8 @@
 
 分析基线是上游仓库 `MoonshotAI/kimi-code` 的 `@moonshot-ai/kimi-code@0.40.0`，commit `e27ee60894d714e5844db75da69f29120a2bce43`，发布于 2026-09-02。源码使用 partial clone 与 sparse checkout 获取，保留约 1,380 条可追溯 commit；本文的重要 commit 结论来自本地 Git 历史，并与[官方 v0.40.0 release](https://github.com/MoonshotAI/kimi-code/releases/tag/@moonshot-ai%2Fkimi-code@0.40.0) 对照。
 
+配套架构图：[Kimi Code Runtime Architecture v0.40.0](../diagrams/kimi-code-runtime-architecture-v0.40.0-e27ee60.excalidraw)。
+
 ## 核心结论
 
 Kimi Code 的 harness 演进可以概括为四次边界移动：

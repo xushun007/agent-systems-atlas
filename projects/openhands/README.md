@@ -10,5 +10,6 @@
 ## 内容
 
 - [Harness / Runtime 演进研究](research/openhands-harness-evolution.md)
+- [Runtime 业务流程图（Excalidraw）](diagrams/openhands-runtime-architecture-v1.15.0-ab23be6.excalidraw)
 
 本仓库是 OpenHands Agent Canvas 前端。Agent loop、工具执行、Conversation 状态机和 Agent Server API 的服务端实现位于 [OpenHands/software-agent-sdk](https://github.com/OpenHands/software-agent-sdk)；研究中会明确标注两者边界。

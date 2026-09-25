@@ -15,6 +15,8 @@ verification:
 
 本文研究 Gemini CLI 在 `v0.59.0` 的 Runtime/Harness 结构，重点关注 agent loop、turn/tool 生命周期、上下文、策略与执行环境的组合方式。源码固定在 [v0.59.0](https://github.com/google-gemini/gemini-cli/tree/v0.59.0)，对应 commit [`fb0d535`](https://github.com/google-gemini/gemini-cli/commit/fb0d535af931b27c51e87e5e6ade72905b1e8390)。
 
+配套架构图：[Gemini CLI Runtime Architecture v0.59.0](../diagrams/gemini-cli-runtime-architecture-v0.59.0-fb0d535.excalidraw)。
+
 ## 结论
 
 Gemini CLI 已不是“CLI 调用模型并执行几个函数”的薄封装，而是一个以 `packages/core` 为产品级运行时、以 CLI/TUI、IDE、SDK 和 A2A server 为不同宿主的多表面 agent。它的核心创新不是单一循环，而是把一次模型响应拆成可观察、可暂停、可审批、可恢复的 tool-call 状态机，并将 approval mode、sandbox、policy、MCP、hooks、压缩和 session recording 统一接入循环。

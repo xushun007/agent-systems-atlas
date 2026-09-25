@@ -21,6 +21,8 @@ diagram: null
 
 分析基线是 `OpenHands/OpenHands` 远程 ref [`v1.15.0`](https://github.com/OpenHands/OpenHands/tree/v1.15.0)，对应 commit [`ab23be62ad724fe83483036a0900bed7b7859166`](https://github.com/OpenHands/OpenHands/commit/ab23be62ad724fe83483036a0900bed7b7859166)。该远程版本的源码已 checkout 到本地分析目录，并保留了 685 个浅历史 commit；本地目录仅是分析材料，不作为文档中的源码引用。
 
+配套架构图：[OpenHands Runtime Architecture v1.15.0](../diagrams/openhands-runtime-architecture-v1.15.0-ab23be6.excalidraw)。
+
 ## 先澄清分析对象：OpenHands 是多仓库 Runtime
 
 在 v1.15.0，`OpenHands/OpenHands` 已不是早期意义上的完整 Python Agent 实现，而是 **Agent Canvas frontend**。仓库中的 `src/` 主要包含 React/TypeScript UI、状态管理、REST/WebSocket client adapter、workspace UI、MCP/ACP 配置和 cloud/local backend registry。

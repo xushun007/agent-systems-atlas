@@ -6,5 +6,6 @@
 - 分析版本：`v0.21.0`，tag `v2026.8.31`
 - 分析提交：[`29112bef099274229cadff79cdff7bf7b99c4b77`](https://github.com/NousResearch/hermes-agent/tree/29112bef099274229cadff79cdff7bf7b99c4b77)
 - 研究文档：[Hermes Harness Runtime 演进](./research/hermes-harness-evolution.md)
+- 架构图：[Hermes Agent Runtime Architecture v2026.8.31](./diagrams/hermes-agent-runtime-architecture-v2026.8.31-29112bef.excalidraw)
 
 研究范围是从项目早期到 `v2026.8.31` 的主要 Runtime/Harness 演进，重点关注 agent loop、Session/Turn/Step、Context、Environment、Tools/Capabilities、持久化、Gateway、ACP、Subagent 和 Desktop/Bot Mode。跨项目比较暂不放在本文中。

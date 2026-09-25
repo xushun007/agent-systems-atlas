@@ -14,6 +14,10 @@
 
 分析终点是上游 [`v0.85.1`](https://github.com/earendil-works/pi/releases/tag/v0.85.1)，固定 commit 为 [`d981de1229ef899957bbe968bc8dcda02a21f477`](https://github.com/earendil-works/pi/commit/d981de1229ef899957bbe968bc8dcda02a21f477)，发布于 2026-09-05。历史结论来自 Pi 的 Git commit graph、版本 changelog 和关键版本源码；当前实现结论固定到该 commit 的 GitHub 源码链接。
 
+配套架构图：[Pi Runtime Architecture v0.85.1](../diagrams/pi-runtime-architecture-v0.85.1-d981de1.excalidraw)。
+
+阅读此图需先区分两条同版本并存的路径。稳定版 CLI 通过 [`createAgentSessionRuntime()`](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/coding-agent/src/main.ts#L840-L846) 创建 `AgentSession`，由 [`createAgentSession()`](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/coding-agent/src/core/sdk.ts#L173-L183) 配置 `SessionManager`，再创建通用 [`Agent`](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/coding-agent/src/core/sdk.ts#L300-L321)。实验性 Server/Worker 则在 worker 内打开 `Session`，创建 [`AgentHarness` 与 `main` lane](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/coding-agent/src/experimental/session-worker.ts#L805-L855)，通过 [`Lane` 的 accept/drive](https://github.com/earendil-works/pi/blob/d981de1229ef899957bbe968bc8dcda02a21f477/packages/agent/src/harness/agent-harness.ts#L539-L559) 执行。两者不是一条从 `AgentSession` 进入 `AgentHarness` 的调用链；下文关于 durable operation 的描述特指后者。
+
 ## 核心结论
 
 Pi 的重大架构变化不是把原有 Agent Loop 不断堆复杂，而是连续把隐含在一次同步交互里的状态拆成可替换、可持久化和可恢复的运行时边界：

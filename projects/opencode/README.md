@@ -9,5 +9,6 @@
 ## 内容
 
 - [OpenCode Harness 架构演进研究（项目诞生至 v2.0.0）](research/opencode-harness-evolution.md)
+- [OpenCode Runtime 架构图（Excalidraw）](diagrams/opencode-runtime-architecture-v2.0.0-63f7cee.excalidraw)
 
 上游源码工作区与 Atlas 分离。当前工作树固定在 `v2.0.0`；`v1.0.0` 使用独立稀疏工作树作为源码参照，不复制进 Atlas。

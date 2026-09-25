@@ -11,3 +11,4 @@
 - [单条用例分析](flow/swebench-instance-analysis.md)
 - [Instance 字段解析](flow/swebench-instance-fields.md)
 - [Harness / Runtime 演进研究](research/mini-swe-agent-harness-evolution.md)
+- [Runtime 业务流程图（Excalidraw）](diagrams/mini-swe-agent-runtime-architecture-v2.4.5-38c01a1.excalidraw)

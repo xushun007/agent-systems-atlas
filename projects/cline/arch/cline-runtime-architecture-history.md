@@ -7,6 +7,7 @@
 | Review date | Snapshot | Upstream commit | Change level | 主要变化 | 文档 | 图 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-09-18 | `2026-09-18.5ec2d47` | `5ec2d47b21b3a09aa7a094bfbbe0c7e8f7ddd3fa` | baseline | 建立 Host → SessionRuntime → per-run AgentRuntime 基线，并纳入 Hub/Remote、队列、审批与恢复路径 | [快照](cline-runtime-architecture-2026-09-18-5ec2d47.md) | [图](../diagrams/cline-runtime-architecture-2026-09-18-5ec2d47.excalidraw) |
+| 2026-09-20 | `2026-09-20.5ec2d47` | `5ec2d47b21b3a09aa7a094bfbbe0c7e8f7ddd3fa` | minor | 补全 Turn/Step 生命周期、Capability/Policy、Environment effect boundary、事件终态、checkpoint 恢复与 Hub 进程边界；不改变上游基线 | [快照](cline-runtime-architecture-2026-09-20-5ec2d47.md) | [图](../diagrams/cline-runtime-architecture-2026-09-20-5ec2d47.excalidraw) |
 
 ## 2026-09-18 · `5ec2d47`
 

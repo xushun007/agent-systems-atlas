@@ -18,6 +18,8 @@
 
 本文使用 v1.0.0 和 v2.0.0 的源码稀疏工作树，并读取从 2025-03-21 初始提交到 v2.0.0 的约 21,682 个可追溯 commit；其中 v2.0.0 附近的提交历史加深到 1,001 个 commit。源码引用均固定到 GitHub commit；commit subject 用于识别演进方向，关键架构结论以源码为准。
 
+配套架构图：[OpenCode Runtime Architecture v2.0.0](../diagrams/opencode-runtime-architecture-v2.0.0-63f7cee.excalidraw)。
+
 ## 核心结论
 
 OpenCode 的全史不是单纯从一个 Agent Loop 线性长大，而是经历了“轻量 CLI/TUI → 工具化 coding agent → 持久化 Session/Server → 产品化客户端 → v2 Effect Runtime”几次边界移动。最近的 v1 → v2 不是一次普通的模块拆分，而是把 Agent 产品从“单体服务中的 Session + Tool Loop”重构成一个由 Effect Service 组成的 Runtime 平台：

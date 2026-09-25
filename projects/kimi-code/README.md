@@ -10,9 +10,10 @@
 
 - [整体系统架构](arch/system-architecture.md) · [版本演进](arch/system-architecture-history.md)
 - [Harness 全程演进（v0.40.0）](research/kimi-code-harness-evolution.md) · [演进索引](research/runtime-harness-history.md)
-- [当前整体架构图（Excalidraw）](diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw)
+- [未发布主线整体架构图（Excalidraw）](diagrams/system-architecture-2026-09-13-ee2cac1.excalidraw)
 - [Agent Loop Runtime](arch/agent-loop-runtime.md) · [版本演进](arch/agent-loop-runtime-history.md)
 - [当前 Runtime 图（Excalidraw）](diagrams/agent-loop-runtime-2026-09-13-ee2cac1.excalidraw)
+- [v0.40.0 Runtime 业务流程图（Excalidraw）](diagrams/kimi-code-runtime-architecture-v0.40.0-e27ee60.excalidraw)
 - [历史核心架构（legacy v1）](arch/architecture.md)
 - [Legacy v1 执行循环深潜](arch/loop_deep_dive.md)
 - [与 Hermes Agent 对比](arch/compare_hermes.md)
