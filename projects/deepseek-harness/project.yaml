@@ -1,0 +1,8 @@
+name: deepseek-harness
+repository: https://github.com/deepseek-ai/deepseek-harness
+analyzed_commit: fb2c4b9e698e30edb738bca4cf0618587db7d203
+analyzed_version: dsh-v0.1.5-rc.2
+analyzed_commit_date: 2026-09-10
+last_reviewed: 2026-09-21
+current_architecture_snapshot: 2026-09-21.fb2c4b9
+research_document: research/deepseek-harness-evolution.md
